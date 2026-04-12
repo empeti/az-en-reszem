@@ -14,33 +14,6 @@ export interface SharedBill {
   totalPaid: number;
 }
 
-function toUrlSafeBase64(bytes: Uint8Array): string {
-  const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function fromUrlSafeBase64(str: string): Uint8Array {
-  const padded = str.replace(/-/g, "+").replace(/_/g, "/");
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
-}
-
-async function compress(data: string): Promise<Uint8Array> {
-  const encoder = new TextEncoder();
-  const input = encoder.encode(data);
-  const stream = new Blob([input as BlobPart]).stream().pipeThrough(
-    new CompressionStream("deflate-raw"),
-  );
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-async function decompress(bytes: Uint8Array): Promise<string> {
-  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(
-    new DecompressionStream("deflate-raw"),
-  );
-  return new Response(stream).text();
-}
-
 function buildPayload(
   items: BillItem[],
   total: number,
@@ -72,30 +45,42 @@ function parsePayload(payload: SharePayload): SharedBill {
   };
 }
 
-export async function encodeShareUrl(
+export async function createShareLink(
   items: BillItem[],
   total: number,
   peopleCount: number,
   totalPaid: number,
 ): Promise<string> {
   const payload = buildPayload(items, total, peopleCount, totalPaid);
-  const json = JSON.stringify(payload);
-  const compressed = await compress(json);
-  const encoded = toUrlSafeBase64(compressed);
-  return `${window.location.origin}${window.location.pathname}#${encoded}`;
+
+  const res = await fetch("/api/bills", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error("Nem sikerült a link létrehozása.");
+  }
+
+  const { id } = (await res.json()) as { id: string };
+  return `${window.location.origin}/${id}`;
 }
 
-export async function decodeShareFromHash(): Promise<SharedBill | null> {
-  const hash = window.location.hash.slice(1);
-  if (!hash || hash.length < 4) return null;
+export async function loadSharedBill(code: string): Promise<SharedBill> {
+  const res = await fetch(`/api/bills/${encodeURIComponent(code)}`);
 
-  try {
-    const compressed = fromUrlSafeBase64(hash);
-    const json = await decompress(compressed);
-    const payload: SharePayload = JSON.parse(json);
-    if (!Array.isArray(payload.i) || typeof payload.t !== "number") return null;
-    return parsePayload(payload);
-  } catch {
-    return null;
+  if (!res.ok) {
+    throw new Error("A megosztott számla nem található.");
   }
+
+  const payload: SharePayload = await res.json();
+  return parsePayload(payload);
+}
+
+export function getShareCodeFromPath(): string | null {
+  const path = window.location.pathname.replace(/^\/+/, "");
+  if (!path || path.includes("/") || path.includes(".")) return null;
+  if (!/^[\w-]+$/i.test(path)) return null;
+  return path;
 }
