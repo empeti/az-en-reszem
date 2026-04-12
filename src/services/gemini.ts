@@ -70,12 +70,20 @@ export async function parseBillImage(
     total: number;
   };
 
-  const items: BillItem[] = parsed.items.map((item, idx) => ({
-    id: `item-${idx}`,
-    name: item.name,
-    quantity: item.quantity,
-    price: item.price,
-  }));
+  const items: BillItem[] = [];
+  let idCounter = 0;
+  for (const item of parsed.items) {
+    const qty = Math.max(1, item.quantity);
+    const unitPrice = Math.round(item.price / qty);
+    for (let i = 0; i < qty; i++) {
+      items.push({
+        id: `item-${idCounter++}`,
+        name: item.name,
+        quantity: 1,
+        price: unitPrice,
+      });
+    }
+  }
 
   return {
     items,
