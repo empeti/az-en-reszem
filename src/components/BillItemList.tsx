@@ -42,6 +42,11 @@ export default function BillItemList({ items, selectedIds, onToggle }: Props) {
                       </span>
                     )}
                     {item.name}
+                    {item.isShared && (
+                      <span className="ml-1.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 align-middle text-[10px] font-medium text-amber-700">
+                        közös
+                      </span>
+                    )}
                   </span>
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-700">
                     {formatPrice(item.price)}

@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import ApiKeyInput from "./components/ApiKeyInput";
 import BillUpload from "./components/BillUpload";
 import BillItemList from "./components/BillItemList";
 import Summary from "./components/Summary";
+import PeopleCount from "./components/PeopleCount";
 import { parseBillImage } from "./services/gemini";
-import type { BillData } from "./types/bill";
+import type { BillData, BillItem } from "./types/bill";
 
 export default function App() {
   const [apiKey, setApiKey] = useState("");
@@ -12,6 +13,7 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [peopleCount, setPeopleCount] = useState(2);
 
   const handleApiKeySet = useCallback((key: string) => {
     setApiKey(key);
@@ -52,7 +54,28 @@ export default function App() {
     setError(null);
   }
 
-  const hasItems = billData && billData.items.length > 0;
+  const displayItems = useMemo<BillItem[]>(() => {
+    if (!billData) return [];
+    const result: BillItem[] = [];
+    let sharedCounter = 0;
+    for (const item of billData.items) {
+      if (item.isShared) {
+        const perPerson = Math.round(item.price / peopleCount);
+        for (let i = 0; i < peopleCount; i++) {
+          result.push({
+            ...item,
+            id: `shared-${sharedCounter++}`,
+            price: perPerson,
+          });
+        }
+      } else {
+        result.push(item);
+      }
+    }
+    return result;
+  }, [billData, peopleCount]);
+
+  const hasItems = displayItems.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
@@ -84,11 +107,12 @@ export default function App() {
             </div>
           )}
 
-          {/* Item list */}
+          {/* People count + Item list */}
           {hasItems && (
             <>
+              <PeopleCount value={peopleCount} onChange={setPeopleCount} />
               <BillItemList
-                items={billData.items}
+                items={displayItems}
                 selectedIds={selectedIds}
                 onToggle={handleToggle}
               />
@@ -106,9 +130,9 @@ export default function App() {
       {/* Sticky summary footer */}
       {hasItems && (
         <Summary
-          items={billData.items}
+          items={displayItems}
           selectedIds={selectedIds}
-          billTotal={billData.total}
+          billTotal={billData!.total}
         />
       )}
     </div>

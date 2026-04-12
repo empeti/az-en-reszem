@@ -3,6 +3,7 @@ export interface BillItem {
   name: string;
   quantity: number;
   price: number;
+  isShared: boolean;
 }
 
 export interface BillData {

@@ -8,7 +8,7 @@ const PROMPT = `You are an expert receipt/bill parser. Analyze this restaurant b
 Return ONLY a valid JSON object with this exact structure (no markdown, no code fences):
 {
   "items": [
-    { "name": "item name", "quantity": 1, "price": 1234 }
+    { "name": "item name", "quantity": 1, "price": 1234, "shared": false }
   ],
   "total": 1234
 }
@@ -17,6 +17,7 @@ Rules:
 - "price" is the TOTAL price for that line (quantity * unit price), as an integer (no decimals). If the currency uses decimals (e.g. 12.50), multiply by 1 only if it's already a whole number style (e.g. Hungarian Forint 2890), otherwise round to nearest integer.
 - "quantity" is the count for that line item.
 - "name" should be the item name exactly as printed on the bill.
+- "shared" must be true for items that are shared costs split among all diners: service charge, tip, cover charge, table fee, bread basket, or similar communal fees. For regular food/drink orders, set false.
 - Include service charge / tip as a separate item if present.
 - "total" is the grand total from the bill.
 - If you cannot read a value, use your best guess.
@@ -66,13 +67,14 @@ export async function parseBillImage(
   }
 
   const parsed = JSON.parse(jsonMatch[0]) as {
-    items: { name: string; quantity: number; price: number }[];
+    items: { name: string; quantity: number; price: number; shared?: boolean }[];
     total: number;
   };
 
   const items: BillItem[] = [];
   let idCounter = 0;
   for (const item of parsed.items) {
+    const isShared = item.shared === true;
     const qty = Math.max(1, item.quantity);
     const unitPrice = Math.round(item.price / qty);
     for (let i = 0; i < qty; i++) {
@@ -81,6 +83,7 @@ export async function parseBillImage(
         name: item.name,
         quantity: 1,
         price: unitPrice,
+        isShared,
       });
     }
   }
