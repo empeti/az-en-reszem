@@ -15,6 +15,7 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
   if (items.length === 0) return null;
 
   const seenSource = new Set<string>();
+  const isOwnerView = !!onToggleShared;
 
   return (
     <div className="animate-fade-in-up space-y-2">
@@ -32,6 +33,48 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
           seenSource.add(sourceId);
           const showSharedToggle = onToggleShared && isFirstOfSource;
 
+          if (isOwnerView) {
+            return (
+              <li
+                key={item.id}
+                className={idx > 0 ? "border-t border-gray-100" : ""}
+              >
+                <div className="flex items-center justify-between gap-2 px-4 py-3.5">
+                  <span className="truncate text-sm text-gray-700">
+                    {item.quantity > 1 && (
+                      <span className="mr-1 text-gray-400">{item.quantity}x</span>
+                    )}
+                    {item.name}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {showSharedToggle && (
+                      <button
+                        type="button"
+                        onClick={() => onToggleShared(sourceId)}
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all ${
+                          item.isShared
+                            ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                            : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+                        }`}
+                        title={item.isShared ? "Közös tétel — kattints a megszüntetéshez" : "Kattints, hogy közös tétel legyen"}
+                      >
+                        {item.isShared ? "1 fő része" : "közös?"}
+                      </button>
+                    )}
+                    {!showSharedToggle && item.isShared && (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
+                        1 fő része
+                      </span>
+                    )}
+                    <span className="text-sm font-bold tabular-nums text-gray-500">
+                      {formatPrice(item.price)}
+                    </span>
+                  </span>
+                </div>
+              </li>
+            );
+          }
+
           return (
             <li
               key={item.id}
@@ -39,9 +82,7 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
             >
               <label
                 className={`flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-all duration-200 ${
-                  checked
-                    ? "bg-teal-50"
-                    : "hover:bg-gray-50"
+                  checked ? "bg-teal-50" : "hover:bg-gray-50"
                 }`}
               >
                 <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
@@ -69,32 +110,12 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
                     checked ? "text-gray-900 font-medium" : "text-gray-600"
                   }`}>
                     {item.quantity > 1 && (
-                      <span className="mr-1 text-gray-400">
-                        {item.quantity}x
-                      </span>
+                      <span className="mr-1 text-gray-400">{item.quantity}x</span>
                     )}
                     {item.name}
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
-                    {showSharedToggle && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onToggleShared(sourceId);
-                        }}
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all ${
-                          item.isShared
-                            ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                            : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-                        }`}
-                        title={item.isShared ? "Közös tétel — kattints a megszüntetéshez" : "Kattints, hogy közös tétel legyen"}
-                      >
-                        {item.isShared ? "1 fő része" : "közös?"}
-                      </button>
-                    )}
-                    {!showSharedToggle && item.isShared && (
+                    {item.isShared && (
                       <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
                         1 fő része
                       </span>
