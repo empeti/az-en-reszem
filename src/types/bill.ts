@@ -4,6 +4,8 @@ export interface BillItem {
   quantity: number;
   price: number;
   isShared: boolean;
+  /** Original item id before splitting — used to trace back shared copies to source */
+  sourceId?: string;
 }
 
 export interface BillData {

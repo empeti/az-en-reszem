@@ -60,6 +60,19 @@ export default function App() {
     });
   }
 
+  function handleToggleShared(sourceId: string) {
+    setBillData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((item) =>
+          item.id === sourceId ? { ...item, isShared: !item.isShared } : item,
+        ),
+      };
+    });
+    setSelectedIds(new Set());
+  }
+
   function handleReset() {
     setBillData(null);
     setSelectedIds(new Set());
@@ -79,11 +92,12 @@ export default function App() {
           result.push({
             ...item,
             id: `shared-${sharedCounter++}`,
+            sourceId: item.id,
             price: perPerson,
           });
         }
       } else {
-        result.push(item);
+        result.push({ ...item, sourceId: item.id });
       }
     }
 
@@ -236,6 +250,7 @@ export default function App() {
                     items={displayItems}
                     selectedIds={selectedIds}
                     onToggle={handleToggle}
+                    onToggleShared={handleToggleShared}
                   />
 
                   <div className="flex gap-2">
