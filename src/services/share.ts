@@ -1,13 +1,10 @@
+import { deflate, inflate } from "pako";
 import type { BillItem } from "../types/bill";
 
 interface SharePayload {
-  /** [name, price, isShared] tuples — compact encoding */
-  i: [string, number, boolean][];
-  /** bill total */
+  i: [string, number, number][];
   t: number;
-  /** people count */
   p: number;
-  /** total paid (0 = no tip) */
   pd: number;
 }
 
@@ -18,16 +15,15 @@ export interface SharedBill {
   totalPaid: number;
 }
 
-function toBase64(str: string): string {
-  const bytes = new TextEncoder().encode(str);
+function toUrlSafeBase64(bytes: Uint8Array): string {
   const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
-  return btoa(binary);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function fromBase64(b64: string): string {
-  const binary = atob(b64);
-  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
+function fromUrlSafeBase64(str: string): Uint8Array {
+  const padded = str.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
 
 export function encodeShareUrl(
@@ -37,39 +33,76 @@ export function encodeShareUrl(
   totalPaid: number,
 ): string {
   const payload: SharePayload = {
-    i: items.map((it) => [it.name, it.price, it.isShared]),
+    i: items.map((it) => [it.name, it.price, it.isShared ? 1 : 0]),
     t: total,
     p: peopleCount,
     pd: totalPaid,
   };
-  const encoded = toBase64(JSON.stringify(payload));
-  return `${window.location.origin}${window.location.pathname}#share=${encoded}`;
+  const json = JSON.stringify(payload);
+  const compressed = deflate(json, { level: 9 });
+  const encoded = toUrlSafeBase64(compressed);
+  return `${window.location.origin}${window.location.pathname}#s=${encoded}`;
 }
 
 export function decodeShareFromUrl(): SharedBill | null {
   const hash = window.location.hash;
-  if (!hash.startsWith("#share=")) return null;
+
+  let encoded: string;
+  if (hash.startsWith("#s=")) {
+    encoded = hash.slice(3);
+  } else if (hash.startsWith("#share=")) {
+    encoded = hash.slice(7);
+    return decodeLegacy(encoded);
+  } else {
+    return null;
+  }
 
   try {
-    const encoded = hash.slice("#share=".length);
-    const payload: SharePayload = JSON.parse(fromBase64(encoded));
-
-    let id = 0;
-    const items: BillItem[] = payload.i.map(([name, price, isShared]) => ({
-      id: `item-${id++}`,
-      name,
-      quantity: 1,
-      price,
-      isShared,
-    }));
-
-    return {
-      items,
-      total: payload.t,
-      peopleCount: payload.p,
-      totalPaid: payload.pd,
-    };
+    const compressed = fromUrlSafeBase64(encoded);
+    const json = inflate(compressed, { to: "string" });
+    const payload: SharePayload = JSON.parse(json);
+    return payloadToSharedBill(payload);
   } catch {
     return null;
   }
+}
+
+function decodeLegacy(encoded: string): SharedBill | null {
+  try {
+    const binary = atob(encoded);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    const json = new TextDecoder().decode(bytes);
+    const payload = JSON.parse(json);
+    const mapped: SharePayload = {
+      i: payload.i.map((x: [string, number, boolean | number]) => [
+        x[0],
+        x[1],
+        x[2] ? 1 : 0,
+      ]),
+      t: payload.t,
+      p: payload.p,
+      pd: payload.pd,
+    };
+    return payloadToSharedBill(mapped);
+  } catch {
+    return null;
+  }
+}
+
+function payloadToSharedBill(payload: SharePayload): SharedBill {
+  let id = 0;
+  const items: BillItem[] = payload.i.map(([name, price, shared]) => ({
+    id: `item-${id++}`,
+    name,
+    quantity: 1,
+    price,
+    isShared: shared === 1,
+  }));
+
+  return {
+    items,
+    total: payload.t,
+    peopleCount: payload.p,
+    totalPaid: payload.pd,
+  };
 }
