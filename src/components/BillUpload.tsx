@@ -58,48 +58,56 @@ export default function BillUpload({ onProcess, isProcessing }: Props) {
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           onClick={() => inputRef.current?.click()}
-          className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-10 transition ${
+          className={`group flex cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-12 transition-all duration-300 ${
             dragOver
-              ? "border-indigo-400 bg-indigo-50"
-              : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+              ? "border-fuchsia-400 bg-fuchsia-500/10"
+              : "border-white/15 bg-white/5 hover:border-white/30 hover:bg-white/8"
           }`}
         >
-          <svg className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-          </svg>
-          <p className="text-sm text-gray-600">
-            <span className="font-medium text-indigo-600">Kattints ide</span> vagy húzd ide a számla fotóját
-          </p>
-          <p className="text-xs text-gray-400">JPG, PNG vagy WEBP</p>
+          <div className={`flex h-16 w-16 items-center justify-center rounded-2xl transition-all duration-300 ${
+            dragOver
+              ? "bg-fuchsia-500/20 scale-110"
+              : "bg-white/10 group-hover:bg-white/15 group-hover:scale-105"
+          }`}>
+            <svg className={`h-8 w-8 transition-colors ${dragOver ? "text-fuchsia-400" : "text-white/40 group-hover:text-white/60"}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+            </svg>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-white/60">
+              <span className="font-semibold text-fuchsia-400">Kattints ide</span> vagy húzd ide a számlát
+            </p>
+            <p className="mt-1 text-xs text-white/30">JPG, PNG vagy WEBP</p>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
             <img
               src={preview}
               alt="Számla előnézet"
-              className="mx-auto max-h-80 object-contain p-2"
+              className="mx-auto max-h-80 object-contain p-3"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={handleReset}
               disabled={isProcessing}
-              className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-40"
+              className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/60 backdrop-blur-sm transition hover:bg-white/10 disabled:opacity-40"
             >
               Másik kép
             </button>
             <button
               onClick={handleProcess}
               disabled={isProcessing}
-              className="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60"
+              className="flex-1 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/25 transition hover:shadow-fuchsia-500/40 hover:brightness-110 disabled:opacity-60"
             >
               {isProcessing ? (
                 <span className="inline-flex items-center gap-2">
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
+                  <div className="relative h-4 w-4">
+                    <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-white" />
+                  </div>
                   Feldolgozás...
                 </span>
               ) : (

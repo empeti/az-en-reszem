@@ -94,6 +94,7 @@ export default function App() {
     setSelectedIds(new Set());
     setError(null);
     setTotalPaid("");
+    setShareUrl(null);
   }
 
   const ownerDisplayItems = useMemo<BillItem[]>(() => {
@@ -191,7 +192,7 @@ export default function App() {
         setCopied(true);
         setTimeout(() => setCopied(false), 3000);
       } catch {
-        /* clipboard may fail on HTTP — URL is shown in UI */
+        /* clipboard may fail on HTTP */
       }
     } catch (err) {
       setError(
@@ -210,70 +211,56 @@ export default function App() {
 
   if (shareLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100">
-        <div className="text-center space-y-3">
-          <svg
-            className="mx-auto h-8 w-8 animate-spin text-indigo-600"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          <p className="text-sm text-gray-500">Számla betöltése...</p>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900">
+        <div className="text-center space-y-4">
+          <div className="relative mx-auto h-12 w-12">
+            <div className="absolute inset-0 rounded-full border-2 border-white/10" />
+            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-fuchsia-400" />
+          </div>
+          <p className="text-sm font-medium text-white/60">Számla betöltése...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      <div className="mx-auto max-w-lg px-4 pt-8 pb-32">
-        <header className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900">
+      {/* Decorative background orbs */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-fuchsia-500/10 blur-3xl" />
+        <div className="absolute top-1/3 -left-40 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-purple-500/8 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto max-w-lg px-4 pt-10 pb-36">
+        {/* Header */}
+        <header className="mb-10 text-center animate-fade-in-up">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-lg shadow-fuchsia-500/25">
+            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 4.5h.008v.008h-.008V13.5zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">
             Az én részem
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-white/50">
             {isSharedView
               ? "Jelöld meg a te tételeidet"
-              : "Töltsd fel az éttermi számlát, és jelöld meg a te tételeidet"}
+              : "Töltsd fel az éttermi számlát, és válaszd ki a tételeidet"}
           </p>
         </header>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {isSharedView && (
             <>
-              <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">
-                <svg
-                  className="h-5 w-5 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101"
-                  />
-                </svg>
-                <span className="flex-1">
+              <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white/70 backdrop-blur-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-fuchsia-500/20">
+                  <svg className="h-4 w-4 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
+                  </svg>
+                </div>
+                <span className="flex-1 font-medium">
                   Megosztott számla &middot; {sharedBill!.peopleCount} fő
                 </span>
               </div>
@@ -286,7 +273,7 @@ export default function App() {
 
               <button
                 onClick={handleExitShared}
-                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/60 backdrop-blur-sm transition hover:bg-white/10 hover:text-white/80"
               >
                 Saját számla feltöltése
               </button>
@@ -295,30 +282,37 @@ export default function App() {
 
           {!isSharedView && (
             <>
-              <ApiKeyInput onApiKeySet={handleApiKeySet} />
+              <div className="animate-fade-in-up">
+                <ApiKeyInput onApiKeySet={handleApiKeySet} />
+              </div>
 
               {apiKey && !hasItems && (
-                <BillUpload
-                  onProcess={handleProcess}
-                  isProcessing={isProcessing}
-                />
+                <div className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+                  <BillUpload
+                    onProcess={handleProcess}
+                    isProcessing={isProcessing}
+                  />
+                </div>
               )}
 
               {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  <p className="font-medium">Hiba történt</p>
-                  <p className="mt-1 text-xs break-all">{error}</p>
+                <div className="animate-fade-in-up rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3.5 text-sm backdrop-blur-sm">
+                  <p className="font-semibold text-red-300">Hiba történt</p>
+                  <p className="mt-1 text-xs text-red-300/70 break-all">{error}</p>
                 </div>
               )}
 
               {hasItems && (
                 <>
-                  <PeopleCount value={peopleCount} onChange={setPeopleCount} />
-                  <TipInput
-                    billTotal={billData!.total}
-                    totalPaid={totalPaid}
-                    onChange={setTotalPaid}
-                  />
+                  <div className="animate-fade-in-up space-y-4">
+                    <PeopleCount value={peopleCount} onChange={setPeopleCount} />
+                    <TipInput
+                      billTotal={billData!.total}
+                      totalPaid={totalPaid}
+                      onChange={setTotalPaid}
+                    />
+                  </div>
+
                   <BillItemList
                     items={displayItems}
                     selectedIds={selectedIds}
@@ -326,17 +320,17 @@ export default function App() {
                     onToggleShared={handleToggleShared}
                   />
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-3 animate-fade-in-up">
                     <button
                       onClick={handleReset}
-                      className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+                      className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/60 backdrop-blur-sm transition hover:bg-white/10 hover:text-white/80"
                     >
                       Új számla
                     </button>
                     <button
                       onClick={handleShare}
                       disabled={sharing}
-                      className="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60"
+                      className="flex-1 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/25 transition hover:shadow-fuchsia-500/40 hover:brightness-110 disabled:opacity-60 disabled:shadow-none"
                     >
                       {sharing
                         ? "Készül..."
@@ -347,8 +341,8 @@ export default function App() {
                   </div>
 
                   {shareUrl && (
-                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 space-y-1">
-                      <p className="text-xs font-medium text-indigo-600">
+                    <div className="animate-fade-in-up rounded-2xl border border-fuchsia-500/20 bg-fuchsia-500/10 px-4 py-3.5 space-y-2 backdrop-blur-sm">
+                      <p className="text-xs font-semibold text-fuchsia-300">
                         Megosztható link:
                       </p>
                       <div className="flex gap-2 items-center">
@@ -356,7 +350,7 @@ export default function App() {
                           readOnly
                           value={shareUrl}
                           onFocus={(e) => e.target.select()}
-                          className="flex-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs tabular-nums text-gray-800 select-all"
+                          className="flex-1 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs tabular-nums text-white select-all focus:outline-none focus:border-fuchsia-400/50"
                         />
                         <button
                           onClick={() => {
@@ -364,7 +358,7 @@ export default function App() {
                             setCopied(true);
                             setTimeout(() => setCopied(false), 3000);
                           }}
-                          className="shrink-0 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                          className="shrink-0 rounded-xl bg-fuchsia-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-fuchsia-400"
                         >
                           {copied ? "Másolva!" : "Másolás"}
                         </button>

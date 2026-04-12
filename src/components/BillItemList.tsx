@@ -17,12 +17,15 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
   const seenSource = new Set<string>();
 
   return (
-    <div className="space-y-1">
-      <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase">
+    <div className="animate-fade-in-up space-y-2">
+      <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-widest text-white/40 uppercase">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+        </svg>
         Tételek a számlán
       </h2>
-      <ul className="divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-white">
-        {items.map((item) => {
+      <ul className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+        {items.map((item, idx) => {
           const checked = selectedIds.has(item.id);
           const sourceId = item.sourceId ?? item.id;
           const isFirstOfSource = !seenSource.has(sourceId);
@@ -30,22 +33,43 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
           const showSharedToggle = onToggleShared && isFirstOfSource;
 
           return (
-            <li key={item.id}>
+            <li
+              key={item.id}
+              className={idx > 0 ? "border-t border-white/5" : ""}
+            >
               <label
-                className={`flex cursor-pointer items-center gap-3 px-4 py-3 transition ${
-                  checked ? "bg-indigo-50" : "hover:bg-gray-50"
+                className={`flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-all duration-200 ${
+                  checked
+                    ? "bg-fuchsia-500/15"
+                    : "hover:bg-white/5"
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => onToggle(item.id)}
-                  className="h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
+                <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggle(item.id)}
+                    className="peer sr-only"
+                  />
+                  <div className={`h-5 w-5 rounded-lg border-2 transition-all duration-200 ${
+                    checked
+                      ? "border-fuchsia-500 bg-fuchsia-500"
+                      : "border-white/20 bg-white/5"
+                  }`}>
+                    {checked && (
+                      <svg className="h-full w-full p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+
                 <span className="flex flex-1 items-center justify-between gap-2 min-w-0">
-                  <span className="truncate text-sm text-gray-800">
+                  <span className={`truncate text-sm transition-colors ${
+                    checked ? "text-white font-medium" : "text-white/70"
+                  }`}>
                     {item.quantity > 1 && (
-                      <span className="mr-1 font-medium text-gray-500">
+                      <span className="mr-1 text-white/40">
                         {item.quantity}x
                       </span>
                     )}
@@ -60,10 +84,10 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
                           e.stopPropagation();
                           onToggleShared(sourceId);
                         }}
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all ${
                           item.isShared
-                            ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                            ? "bg-amber-400/20 text-amber-300 hover:bg-amber-400/30"
+                            : "bg-white/10 text-white/40 hover:bg-white/15 hover:text-white/60"
                         }`}
                         title={item.isShared ? "Közös tétel — kattints a megszüntetéshez" : "Kattints, hogy közös tétel legyen"}
                       >
@@ -71,14 +95,13 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
                       </button>
                     )}
                     {!showSharedToggle && item.isShared && (
-                      <span
-                        className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700"
-                        title="Közös tétel — csak az 1 főre eső rész adódik az összeghez"
-                      >
+                      <span className="rounded-full bg-amber-400/20 px-2.5 py-1 text-[10px] font-semibold text-amber-300">
                         1 fő része
                       </span>
                     )}
-                    <span className="text-sm font-semibold tabular-nums text-gray-700">
+                    <span className={`text-sm font-bold tabular-nums transition-colors ${
+                      checked ? "text-fuchsia-300" : "text-white/60"
+                    }`}>
                       {formatPrice(item.price)}
                     </span>
                   </span>

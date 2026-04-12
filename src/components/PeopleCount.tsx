@@ -5,22 +5,22 @@ interface Props {
 
 export default function PeopleCount({ value, onChange }: Props) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3">
-      <span className="text-sm font-medium text-gray-700">Hány fő?</span>
+    <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-sm">
+      <span className="text-sm font-semibold text-white/70">Hány fő?</span>
       <div className="flex items-center gap-3">
         <button
           onClick={() => onChange(Math.max(1, value - 1))}
           disabled={value <= 1}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-lg font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg font-medium text-white/60 transition hover:bg-white/10 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed"
         >
           -
         </button>
-        <span className="w-6 text-center text-lg font-semibold tabular-nums text-gray-900">
+        <span className="w-7 text-center text-lg font-bold tabular-nums text-white">
           {value}
         </span>
         <button
           onClick={() => onChange(value + 1)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-lg font-medium text-gray-600 transition hover:bg-gray-50"
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg font-medium text-white/60 transition hover:bg-white/10 hover:text-white"
         >
           +
         </button>
