@@ -22,6 +22,17 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS claims (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    bill_id    TEXT NOT NULL REFERENCES bills(id),
+    name       TEXT NOT NULL,
+    item_ids   TEXT NOT NULL,
+    total      INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 function generateId() {
   return crypto.randomBytes(4).toString("base64url");
 }
@@ -45,6 +56,39 @@ app.get("/api/bills/:id", (req, res) => {
   const row = db.prepare("SELECT data FROM bills WHERE id = ?").get(req.params.id);
   if (!row) return res.status(404).json({ error: "Nem található." });
   res.json(JSON.parse(row.data));
+});
+
+app.post("/api/bills/:id/claims", (req, res) => {
+  const bill = db.prepare("SELECT id FROM bills WHERE id = ?").get(req.params.id);
+  if (!bill) return res.status(404).json({ error: "Számla nem található." });
+
+  const { name, itemIds, total } = req.body;
+  if (!name || !Array.isArray(itemIds) || itemIds.length === 0) {
+    return res.status(400).json({ error: "Név és tételek megadása kötelező." });
+  }
+
+  db.prepare(
+    "INSERT INTO claims (bill_id, name, item_ids, total) VALUES (?, ?, ?, ?)"
+  ).run(req.params.id, name, JSON.stringify(itemIds), total || 0);
+
+  res.status(201).json({ ok: true });
+});
+
+app.get("/api/bills/:id/claims", (req, res) => {
+  const bill = db.prepare("SELECT id FROM bills WHERE id = ?").get(req.params.id);
+  if (!bill) return res.status(404).json({ error: "Számla nem található." });
+
+  const rows = db.prepare(
+    "SELECT name, item_ids, total, created_at FROM claims WHERE bill_id = ? ORDER BY created_at"
+  ).all(req.params.id);
+
+  const claims = rows.map((r) => ({
+    name: r.name,
+    itemIds: JSON.parse(r.item_ids),
+    total: r.total,
+  }));
+
+  res.json(claims);
 });
 
 if (hasDistBuild) {

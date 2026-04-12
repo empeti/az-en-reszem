@@ -1,21 +1,39 @@
 import type { BillItem } from "../types/bill";
+import type { Claim } from "../services/share";
 
 interface Props {
   items: BillItem[];
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
   onToggleShared?: (sourceId: string) => void;
+  claimedItemIds?: Set<string>;
+  claims?: Claim[];
 }
 
 function formatPrice(price: number): string {
   return price.toLocaleString("hu-HU") + " Ft";
 }
 
-export default function BillItemList({ items, selectedIds, onToggle, onToggleShared }: Props) {
+function getClaimantName(itemId: string, claims: Claim[]): string | null {
+  for (const claim of claims) {
+    if (claim.itemIds.includes(itemId)) return claim.name;
+  }
+  return null;
+}
+
+export default function BillItemList({
+  items,
+  selectedIds,
+  onToggle,
+  onToggleShared,
+  claimedItemIds,
+  claims,
+}: Props) {
   if (items.length === 0) return null;
 
   const seenSource = new Set<string>();
   const isOwnerView = !!onToggleShared;
+  const isOwnerDashboard = isOwnerView && !!claims;
 
   return (
     <div className="animate-fade-in-up space-y-2">
@@ -31,26 +49,37 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
           const sourceId = item.sourceId ?? item.id;
           const isFirstOfSource = !seenSource.has(sourceId);
           seenSource.add(sourceId);
-          const showSharedToggle = onToggleShared && isFirstOfSource;
+          const showSharedToggle = onToggleShared && isFirstOfSource && !isOwnerDashboard;
+          const isClaimed = claimedItemIds?.has(item.id) ?? false;
+          const claimant = isOwnerDashboard && claims ? getClaimantName(item.id, claims) : null;
 
           if (isOwnerView) {
             return (
               <li
                 key={item.id}
-                className={idx > 0 ? "border-t border-gray-100" : ""}
+                className={`${idx > 0 ? "border-t border-gray-100" : ""} ${
+                  isClaimed ? "bg-emerald-50" : ""
+                }`}
               >
                 <div className="flex items-center justify-between gap-2 px-4 py-3.5">
-                  <span className="truncate text-sm text-gray-700">
-                    {item.quantity > 1 && (
-                      <span className="mr-1 text-gray-400">{item.quantity}x</span>
+                  <div className="min-w-0 flex-1">
+                    <span className={`truncate text-sm ${isClaimed ? "text-gray-500" : "text-gray-700"}`}>
+                      {item.quantity > 1 && (
+                        <span className="mr-1 text-gray-400">{item.quantity}x</span>
+                      )}
+                      {item.name}
+                    </span>
+                    {claimant && (
+                      <p className="text-xs text-emerald-600 font-medium mt-0.5">
+                        {claimant}
+                      </p>
                     )}
-                    {item.name}
-                  </span>
+                  </div>
                   <span className="flex shrink-0 items-center gap-2">
                     {showSharedToggle && (
                       <button
                         type="button"
-                        onClick={() => onToggleShared(sourceId)}
+                        onClick={() => onToggleShared!(sourceId)}
                         className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all ${
                           item.isShared
                             ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
@@ -66,7 +95,7 @@ export default function BillItemList({ items, selectedIds, onToggle, onToggleSha
                         1 fő része
                       </span>
                     )}
-                    <span className="text-sm font-bold tabular-nums text-gray-500">
+                    <span className={`text-sm font-bold tabular-nums ${isClaimed ? "text-emerald-600" : "text-gray-500"}`}>
                       {formatPrice(item.price)}
                     </span>
                   </span>

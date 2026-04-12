@@ -18,6 +18,12 @@ export interface SharedBill {
   bankAccount: string;
 }
 
+export interface Claim {
+  name: string;
+  itemIds: string[];
+  total: number;
+}
+
 function buildPayload(
   items: BillItem[],
   total: number,
@@ -88,6 +94,33 @@ export async function loadSharedBill(code: string): Promise<SharedBill> {
 
   const payload: SharePayload = await res.json();
   return parsePayload(payload);
+}
+
+export async function submitClaim(
+  billCode: string,
+  name: string,
+  itemIds: string[],
+  total: number,
+): Promise<void> {
+  const res = await fetch(`/api/bills/${encodeURIComponent(billCode)}/claims`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, itemIds, total }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Nem sikerült a tételek mentése.");
+  }
+}
+
+export async function loadClaims(billCode: string): Promise<Claim[]> {
+  const res = await fetch(`/api/bills/${encodeURIComponent(billCode)}/claims`);
+
+  if (!res.ok) {
+    throw new Error("Nem sikerült a bejelentések betöltése.");
+  }
+
+  return res.json();
 }
 
 export function getShareCodeFromPath(): string | null {

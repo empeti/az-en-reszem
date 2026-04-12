@@ -7,12 +7,16 @@ import PeopleCount from "./components/PeopleCount";
 import TipInput from "./components/TipInput";
 import BankInfo from "./components/BankInfo";
 import DoneSummary from "./components/DoneSummary";
+import ClaimsSummary from "./components/ClaimsSummary";
 import { parseBillImage } from "./services/gemini";
 import {
   createShareLink,
   loadSharedBill,
+  loadClaims,
+  submitClaim,
   getShareCodeFromPath,
   type SharedBill,
+  type Claim,
 } from "./services/share";
 import type { BillData, BillItem } from "./types/bill";
 
@@ -28,21 +32,36 @@ export default function App() {
   const [shareLoading, setShareLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [ownerUrl, setOwnerUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [bankName, setBankName] = useState("");
   const [bankAccount, setBankAccount] = useState("");
   const [guestName, setGuestName] = useState("");
   const [isDone, setIsDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [billCode, setBillCode] = useState<string | null>(null);
+  const [isOwnerView, setIsOwnerView] = useState(false);
 
-  const isSharedView = sharedBill !== null;
+  const isSharedView = sharedBill !== null && !isOwnerView;
+  const isOwnerDashboard = sharedBill !== null && isOwnerView;
 
   useEffect(() => {
     const code = getShareCodeFromPath();
     if (!code) return;
 
+    const params = new URLSearchParams(window.location.search);
+    const owner = params.get("owner") === "1";
+
     setShareLoading(true);
-    loadSharedBill(code)
-      .then(setSharedBill)
+    setBillCode(code);
+
+    Promise.all([loadSharedBill(code), loadClaims(code)])
+      .then(([bill, claimsData]) => {
+        setSharedBill(bill);
+        setClaims(claimsData);
+        if (owner) setIsOwnerView(true);
+      })
       .catch(() => setError("A megosztott számla nem található vagy lejárt."))
       .finally(() => setShareLoading(false));
   }, []);
@@ -101,6 +120,7 @@ export default function App() {
     setError(null);
     setTotalPaid("");
     setShareUrl(null);
+    setOwnerUrl(null);
   }
 
   const ownerDisplayItems = useMemo<BillItem[]>(() => {
@@ -175,10 +195,29 @@ export default function App() {
     return result;
   }, [sharedBill]);
 
-  const displayItems = isSharedView ? sharedDisplayItems : ownerDisplayItems;
+  const claimedItemIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const claim of claims) {
+      for (const id of claim.itemIds) ids.add(id);
+    }
+    return ids;
+  }, [claims]);
+
+  const guestVisibleItems = useMemo(() => {
+    return sharedDisplayItems.filter(
+      (item) => item.isShared || !claimedItemIds.has(item.id),
+    );
+  }, [sharedDisplayItems, claimedItemIds]);
+
+  const displayItems = isSharedView
+    ? guestVisibleItems
+    : isOwnerDashboard
+      ? sharedDisplayItems
+      : ownerDisplayItems;
+
   const hasItems = displayItems.length > 0;
-  const effectiveTotal = isSharedView
-    ? Math.max(sharedBill!.total, sharedBill!.totalPaid)
+  const effectiveTotal = sharedBill
+    ? Math.max(sharedBill.total, sharedBill.totalPaid)
     : Math.max(billData?.total ?? 0, Number(totalPaid) || 0);
 
   const myTotal = useMemo(() => {
@@ -201,6 +240,8 @@ export default function App() {
         bankAccount,
       );
       setShareUrl(url);
+      const ownerLink = url + "?owner=1";
+      setOwnerUrl(ownerLink);
       try {
         await navigator.clipboard.writeText(url);
         setCopied(true);
@@ -217,12 +258,42 @@ export default function App() {
     }
   }
 
+  async function handleDone() {
+    if (!billCode || selectedIds.size === 0) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const selectedItemIds = Array.from(selectedIds);
+      await submitClaim(billCode, guestName || "Névtelen", selectedItemIds, myTotal);
+      setIsDone(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Nem sikerült menteni.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function handleExitShared() {
     setSharedBill(null);
     setError(null);
     setIsDone(false);
     setGuestName("");
+    setIsOwnerView(false);
+    setClaims([]);
+    setBillCode(null);
     window.history.replaceState(null, "", "/");
+  }
+
+  async function handleRefreshClaims() {
+    if (!billCode) return;
+    try {
+      const fresh = await loadClaims(billCode);
+      setClaims(fresh);
+    } catch {
+      // silent
+    }
   }
 
   if (shareLoading) {
@@ -242,7 +313,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-amber-50">
       <div className="relative mx-auto max-w-lg px-4 pt-10 pb-36">
-        {/* Header */}
         <header className="mb-10 text-center animate-fade-in-up">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/20">
             <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -253,15 +323,58 @@ export default function App() {
             Az én részem
           </h1>
           <p className="mt-2 text-sm text-gray-400">
-            {isSharedView
-              ? isDone
-                ? "Itt az összesítésed"
-                : "Jelöld meg a te tételeidet"
-              : "Töltsd fel az éttermi számlát, és válaszd ki a tételeidet"}
+            {isOwnerDashboard
+              ? "Számla áttekintés"
+              : isSharedView
+                ? isDone
+                  ? "Itt az összesítésed"
+                  : "Jelöld meg a te tételeidet"
+                : "Töltsd fel az éttermi számlát, és válaszd ki a tételeidet"}
           </p>
         </header>
 
         <div className="space-y-4">
+          {/* Owner dashboard */}
+          {isOwnerDashboard && (
+            <>
+              <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-700">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100">
+                  <svg className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                  </svg>
+                </div>
+                <span className="flex-1 font-medium">
+                  Tulajdonos nézet &middot; {sharedBill!.peopleCount} fő
+                </span>
+                <button
+                  onClick={handleRefreshClaims}
+                  className="rounded-lg px-2.5 py-1 text-xs font-medium text-amber-600 transition hover:bg-amber-100"
+                >
+                  Frissítés
+                </button>
+              </div>
+
+              <BillItemList
+                items={displayItems}
+                selectedIds={selectedIds}
+                onToggle={handleToggle}
+                onToggleShared={handleToggleShared}
+                claimedItemIds={claimedItemIds}
+                claims={claims}
+              />
+
+              <ClaimsSummary claims={claims} />
+
+              <button
+                onClick={handleExitShared}
+                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700"
+              >
+                Saját számla feltöltése
+              </button>
+            </>
+          )}
+
+          {/* Guest shared view */}
           {isSharedView && (
             <>
               {isDone ? (
@@ -302,11 +415,11 @@ export default function App() {
                     />
 
                     <button
-                      onClick={() => setIsDone(true)}
-                      disabled={selectedIds.size === 0}
+                      onClick={handleDone}
+                      disabled={selectedIds.size === 0 || submitting}
                       className="w-full rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-teal-500/20 transition hover:shadow-lg hover:brightness-105 disabled:opacity-40 disabled:shadow-none"
                     >
-                      Kész vagyok
+                      {submitting ? "Mentés..." : "Kész vagyok"}
                     </button>
                   </div>
 
@@ -321,7 +434,8 @@ export default function App() {
             </>
           )}
 
-          {!isSharedView && (
+          {/* Owner creation view */}
+          {!isSharedView && !isOwnerDashboard && (
             <>
               <div className="animate-fade-in-up">
                 <ApiKeyInput onApiKeySet={handleApiKeySet} />
@@ -388,28 +502,54 @@ export default function App() {
                   </div>
 
                   {shareUrl && (
-                    <div className="animate-fade-in-up rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 space-y-2">
-                      <p className="text-xs font-semibold text-teal-700">
-                        Megosztható link:
-                      </p>
-                      <div className="flex gap-2 items-center">
-                        <input
-                          readOnly
-                          value={shareUrl}
-                          onFocus={(e) => e.target.select()}
-                          className="flex-1 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs tabular-nums text-gray-700 select-all focus:outline-none focus:border-teal-400"
-                        />
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(shareUrl);
-                            setCopied(true);
-                            setTimeout(() => setCopied(false), 3000);
-                          }}
-                          className="shrink-0 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-500"
-                        >
-                          {copied ? "Másolva!" : "Másolás"}
-                        </button>
+                    <div className="animate-fade-in-up space-y-3">
+                      <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 space-y-2">
+                        <p className="text-xs font-semibold text-teal-700">
+                          Megosztható link (küld el a többieknek):
+                        </p>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            readOnly
+                            value={shareUrl}
+                            onFocus={(e) => e.target.select()}
+                            className="flex-1 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs tabular-nums text-gray-700 select-all focus:outline-none focus:border-teal-400"
+                          />
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(shareUrl);
+                              setCopied(true);
+                              setTimeout(() => setCopied(false), 3000);
+                            }}
+                            className="shrink-0 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-500"
+                          >
+                            {copied ? "Másolva!" : "Másolás"}
+                          </button>
+                        </div>
                       </div>
+
+                      {ownerUrl && (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 space-y-2">
+                          <p className="text-xs font-semibold text-amber-700">
+                            Tulajdonos link (mentsd el magadnak):
+                          </p>
+                          <div className="flex gap-2 items-center">
+                            <input
+                              readOnly
+                              value={ownerUrl}
+                              onFocus={(e) => e.target.select()}
+                              className="flex-1 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs tabular-nums text-gray-700 select-all focus:outline-none focus:border-amber-400"
+                            />
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(ownerUrl);
+                              }}
+                              className="shrink-0 rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-500"
+                            >
+                              Másolás
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
@@ -419,7 +559,7 @@ export default function App() {
         </div>
       </div>
 
-      {hasItems && !isDone && (
+      {hasItems && !isDone && !isOwnerDashboard && (
         <Summary
           items={displayItems}
           selectedIds={selectedIds}
