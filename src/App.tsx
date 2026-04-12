@@ -34,6 +34,7 @@ export default function App() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [ownerUrl, setOwnerUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [eventName, setEventName] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankAccount, setBankAccount] = useState("");
   const [guestName, setGuestName] = useState("");
@@ -56,11 +57,11 @@ export default function App() {
     setShareLoading(true);
     setBillCode(code);
 
-    Promise.all([loadSharedBill(code), loadClaims(code)])
-      .then(([bill, claimsData]) => {
+    loadSharedBill(code)
+      .then((bill) => {
         setSharedBill(bill);
-        setClaims(claimsData);
         if (owner) setIsOwnerView(true);
+        return loadClaims(code).then(setClaims).catch(() => {});
       })
       .catch(() => setError("A megosztott számla nem található vagy lejárt."))
       .finally(() => setShareLoading(false));
@@ -238,6 +239,7 @@ export default function App() {
         Number(totalPaid) || 0,
         bankName,
         bankAccount,
+        eventName,
       );
       setShareUrl(url);
       const ownerLink = url + "?owner=1";
@@ -320,7 +322,7 @@ export default function App() {
             </svg>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
-            Az én részem
+            {sharedBill?.eventName || "Az én részem"}
           </h1>
           <p className="mt-2 text-sm text-gray-400">
             {isOwnerDashboard
@@ -460,6 +462,13 @@ export default function App() {
               {hasItems && (
                 <>
                   <div className="animate-fade-in-up space-y-4">
+                    <input
+                      type="text"
+                      value={eventName}
+                      onChange={(e) => setEventName(e.target.value)}
+                      placeholder="Esemény neve (pl. Pénteki vacsora)"
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none"
+                    />
                     <PeopleCount value={peopleCount} onChange={setPeopleCount} />
                     <TipInput
                       billTotal={billData!.total}

@@ -7,6 +7,7 @@ interface SharePayload {
   pd: number;
   bn?: string;
   ba?: string;
+  en?: string;
 }
 
 export interface SharedBill {
@@ -16,6 +17,7 @@ export interface SharedBill {
   totalPaid: number;
   bankName: string;
   bankAccount: string;
+  eventName: string;
 }
 
 export interface Claim {
@@ -31,6 +33,7 @@ function buildPayload(
   totalPaid: number,
   bankName: string,
   bankAccount: string,
+  eventName: string,
 ): SharePayload {
   return {
     i: items.map((it) => [it.name, it.price, it.isShared ? 1 : 0]),
@@ -39,6 +42,7 @@ function buildPayload(
     pd: totalPaid,
     bn: bankName || undefined,
     ba: bankAccount || undefined,
+    en: eventName || undefined,
   };
 }
 
@@ -58,6 +62,7 @@ function parsePayload(payload: SharePayload): SharedBill {
     totalPaid: payload.pd,
     bankName: payload.bn ?? "",
     bankAccount: payload.ba ?? "",
+    eventName: payload.en ?? "",
   };
 }
 
@@ -68,8 +73,9 @@ export async function createShareLink(
   totalPaid: number,
   bankName: string,
   bankAccount: string,
+  eventName: string,
 ): Promise<string> {
-  const payload = buildPayload(items, total, peopleCount, totalPaid, bankName, bankAccount);
+  const payload = buildPayload(items, total, peopleCount, totalPaid, bankName, bankAccount, eventName);
 
   const res = await fetch("/api/bills", {
     method: "POST",
