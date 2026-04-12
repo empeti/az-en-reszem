@@ -1,7 +1,5 @@
 import type { BillItem } from "../types/bill";
 
-const JSONBLOB_API = "https://jsonblob.com/api/jsonBlob";
-
 interface SharePayload {
   i: [string, number, number][];
   t: number;
@@ -16,22 +14,31 @@ export interface SharedBill {
   totalPaid: number;
 }
 
-function hexToBase36(hex: string): string {
-  return BigInt("0x" + hex).toString(36);
+function toUrlSafeBase64(bytes: Uint8Array): string {
+  const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function base36ToHex(b36: string): string {
-  const chars = "0123456789abcdefghijklmnopqrstuvwxyz";
-  let n = 0n;
-  for (const c of b36.toLowerCase()) {
-    n = n * 36n + BigInt(chars.indexOf(c));
-  }
-  return n.toString(16).padStart(32, "0");
+function fromUrlSafeBase64(str: string): Uint8Array {
+  const padded = str.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
 
-function hexToUuid(hex: string): string {
-  const h = hex.padStart(32, "0");
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+async function compress(data: string): Promise<Uint8Array> {
+  const encoder = new TextEncoder();
+  const input = encoder.encode(data);
+  const stream = new Blob([input as BlobPart]).stream().pipeThrough(
+    new CompressionStream("deflate-raw"),
+  );
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function decompress(bytes: Uint8Array): Promise<string> {
+  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(
+    new DecompressionStream("deflate-raw"),
+  );
+  return new Response(stream).text();
 }
 
 function buildPayload(
@@ -65,59 +72,30 @@ function parsePayload(payload: SharePayload): SharedBill {
   };
 }
 
-export async function storeShare(
+export async function encodeShareUrl(
   items: BillItem[],
   total: number,
   peopleCount: number,
   totalPaid: number,
 ): Promise<string> {
   const payload = buildPayload(items, total, peopleCount, totalPaid);
-
-  const res = await fetch(JSONBLOB_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    throw new Error("Nem sikerült a link létrehozása.");
-  }
-
-  const blobId =
-    res.headers.get("X-jsonblob-id") ??
-    res.headers.get("Location")?.split("/").pop();
-
-  if (!blobId) {
-    throw new Error("Nem sikerült a link létrehozása.");
-  }
-
-  const hex = blobId.replace(/-/g, "");
-  const shortCode = hexToBase36(hex);
-  return `${window.location.origin}/${shortCode}`;
+  const json = JSON.stringify(payload);
+  const compressed = await compress(json);
+  const encoded = toUrlSafeBase64(compressed);
+  return `${window.location.origin}${window.location.pathname}#${encoded}`;
 }
 
-export async function loadShare(shortCode: string): Promise<SharedBill> {
-  const hex = base36ToHex(shortCode);
-  const uuid = hexToUuid(hex);
+export async function decodeShareFromHash(): Promise<SharedBill | null> {
+  const hash = window.location.hash.slice(1);
+  if (!hash || hash.length < 4) return null;
 
-  const res = await fetch(`${JSONBLOB_API}/${uuid}`, {
-    headers: { Accept: "application/json" },
-  });
-
-  if (!res.ok) {
-    throw new Error("A megosztott számla nem található.");
+  try {
+    const compressed = fromUrlSafeBase64(hash);
+    const json = await decompress(compressed);
+    const payload: SharePayload = JSON.parse(json);
+    if (!Array.isArray(payload.i) || typeof payload.t !== "number") return null;
+    return parsePayload(payload);
+  } catch {
+    return null;
   }
-
-  const payload: SharePayload = await res.json();
-  return parsePayload(payload);
-}
-
-export function getShareCodeFromPath(): string | null {
-  const path = window.location.pathname.replace(/^\/+/, "");
-  if (!path || path.includes("/") || path.includes(".")) return null;
-  if (!/^[a-z0-9]+$/i.test(path)) return null;
-  return path;
 }

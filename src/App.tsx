@@ -7,9 +7,8 @@ import PeopleCount from "./components/PeopleCount";
 import TipInput from "./components/TipInput";
 import { parseBillImage } from "./services/gemini";
 import {
-  storeShare,
-  loadShare,
-  getShareCodeFromPath,
+  encodeShareUrl,
+  decodeShareFromHash,
   type SharedBill,
 } from "./services/share";
 import type { BillData, BillItem } from "./types/bill";
@@ -31,13 +30,15 @@ export default function App() {
   const isSharedView = sharedBill !== null;
 
   useEffect(() => {
-    const code = getShareCodeFromPath();
-    if (!code) return;
+    if (!window.location.hash || window.location.hash.length < 5) return;
 
     setShareLoading(true);
-    loadShare(code)
-      .then(setSharedBill)
-      .catch(() => setError("A megosztott számla nem található vagy lejárt."))
+    decodeShareFromHash()
+      .then((bill) => {
+        if (bill) setSharedBill(bill);
+        else setError("A megosztott számla nem olvasható.");
+      })
+      .catch(() => setError("A megosztott számla nem olvasható."))
       .finally(() => setShareLoading(false));
   }, []);
 
@@ -179,7 +180,7 @@ export default function App() {
     setSharing(true);
     setError(null);
     try {
-      const url = await storeShare(
+      const url = await encodeShareUrl(
         billData.items,
         billData.total,
         peopleCount,
@@ -205,7 +206,7 @@ export default function App() {
   function handleExitShared() {
     setSharedBill(null);
     setError(null);
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", window.location.pathname);
   }
 
   if (shareLoading) {
