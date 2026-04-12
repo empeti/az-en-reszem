@@ -4,6 +4,7 @@ import BillUpload from "./components/BillUpload";
 import BillItemList from "./components/BillItemList";
 import Summary from "./components/Summary";
 import PeopleCount from "./components/PeopleCount";
+import TipInput from "./components/TipInput";
 import { parseBillImage } from "./services/gemini";
 import type { BillData, BillItem } from "./types/bill";
 
@@ -14,6 +15,7 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [peopleCount, setPeopleCount] = useState(2);
+  const [totalPaid, setTotalPaid] = useState("");
 
   const handleApiKeySet = useCallback((key: string) => {
     setApiKey(key);
@@ -52,6 +54,7 @@ export default function App() {
     setBillData(null);
     setSelectedIds(new Set());
     setError(null);
+    setTotalPaid("");
   }
 
   const displayItems = useMemo<BillItem[]>(() => {
@@ -72,8 +75,24 @@ export default function App() {
         result.push(item);
       }
     }
+
+    const paid = Number(totalPaid) || 0;
+    const tip = paid - billData.total;
+    if (tip > 0) {
+      const perPerson = Math.round(tip / peopleCount);
+      for (let i = 0; i < peopleCount; i++) {
+        result.push({
+          id: `tip-${i}`,
+          name: "Borravaló",
+          quantity: 1,
+          price: perPerson,
+          isShared: true,
+        });
+      }
+    }
+
     return result;
-  }, [billData, peopleCount]);
+  }, [billData, peopleCount, totalPaid]);
 
   const hasItems = displayItems.length > 0;
 
@@ -111,6 +130,11 @@ export default function App() {
           {hasItems && (
             <>
               <PeopleCount value={peopleCount} onChange={setPeopleCount} />
+              <TipInput
+                billTotal={billData!.total}
+                totalPaid={totalPaid}
+                onChange={setTotalPaid}
+              />
               <BillItemList
                 items={displayItems}
                 selectedIds={selectedIds}
@@ -132,7 +156,7 @@ export default function App() {
         <Summary
           items={displayItems}
           selectedIds={selectedIds}
-          billTotal={billData!.total}
+          billTotal={Math.max(billData!.total, Number(totalPaid) || 0)}
         />
       )}
     </div>

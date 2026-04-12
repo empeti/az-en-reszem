@@ -43,8 +43,11 @@ export default function BillItemList({ items, selectedIds, onToggle }: Props) {
                     )}
                     {item.name}
                     {item.isShared && (
-                      <span className="ml-1.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 align-middle text-[10px] font-medium text-amber-700">
-                        közös
+                      <span
+                        className="ml-1.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 align-middle text-[10px] font-medium text-amber-700"
+                        title="Közös tétel — csak az 1 főre eső rész adódik az összeghez"
+                      >
+                        1 fő része
                       </span>
                     )}
                   </span>
