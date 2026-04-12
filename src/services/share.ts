@@ -16,17 +16,22 @@ export interface SharedBill {
   totalPaid: number;
 }
 
-function bigintToBase36(n: bigint): string {
-  return n.toString(36);
+function hexToBase36(hex: string): string {
+  return BigInt("0x" + hex).toString(36);
 }
 
-function base36ToBigint(s: string): bigint {
+function base36ToHex(b36: string): string {
   const chars = "0123456789abcdefghijklmnopqrstuvwxyz";
-  let result = 0n;
-  for (const c of s.toLowerCase()) {
-    result = result * 36n + BigInt(chars.indexOf(c));
+  let n = 0n;
+  for (const c of b36.toLowerCase()) {
+    n = n * 36n + BigInt(chars.indexOf(c));
   }
-  return result;
+  return n.toString(16).padStart(32, "0");
+}
+
+function hexToUuid(hex: string): string {
+  const h = hex.padStart(32, "0");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
 function buildPayload(
@@ -81,21 +86,24 @@ export async function storeShare(
     throw new Error("Nem sikerült a link létrehozása.");
   }
 
-  const location = res.headers.get("Location");
-  if (!location) {
+  const blobId =
+    res.headers.get("X-jsonblob-id") ??
+    res.headers.get("Location")?.split("/").pop();
+
+  if (!blobId) {
     throw new Error("Nem sikerült a link létrehozása.");
   }
 
-  const blobId = location.split("/").pop()!;
-  const shortCode = bigintToBase36(BigInt(blobId));
-  const base = window.location.origin;
-  return `${base}/${shortCode}`;
+  const hex = blobId.replace(/-/g, "");
+  const shortCode = hexToBase36(hex);
+  return `${window.location.origin}/${shortCode}`;
 }
 
 export async function loadShare(shortCode: string): Promise<SharedBill> {
-  const blobId = base36ToBigint(shortCode).toString();
+  const hex = base36ToHex(shortCode);
+  const uuid = hexToUuid(hex);
 
-  const res = await fetch(`${JSONBLOB_API}/${blobId}`, {
+  const res = await fetch(`${JSONBLOB_API}/${uuid}`, {
     headers: { Accept: "application/json" },
   });
 
