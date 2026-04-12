@@ -25,6 +25,8 @@ export default function App() {
   const [sharedBill, setSharedBill] = useState<SharedBill | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const isSharedView = sharedBill !== null;
 
@@ -174,6 +176,8 @@ export default function App() {
 
   async function handleShare() {
     if (!billData) return;
+    setSharing(true);
+    setError(null);
     try {
       const url = await storeShare(
         billData.items,
@@ -181,11 +185,20 @@ export default function App() {
         peopleCount,
         Number(totalPaid) || 0,
       );
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError("Nem sikerült a link létrehozása.");
+      setShareUrl(url);
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      } catch {
+        /* clipboard may fail on HTTP — URL is shown in UI */
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Nem sikerült a link létrehozása.",
+      );
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -322,11 +335,42 @@ export default function App() {
                     </button>
                     <button
                       onClick={handleShare}
-                      className="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+                      disabled={sharing}
+                      className="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60"
                     >
-                      {copied ? "Link másolva!" : "Link megosztása"}
+                      {sharing
+                        ? "Készül..."
+                        : copied
+                          ? "Link másolva!"
+                          : "Link megosztása"}
                     </button>
                   </div>
+
+                  {shareUrl && (
+                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 space-y-1">
+                      <p className="text-xs font-medium text-indigo-600">
+                        Megosztható link:
+                      </p>
+                      <div className="flex gap-2 items-center">
+                        <input
+                          readOnly
+                          value={shareUrl}
+                          onFocus={(e) => e.target.select()}
+                          className="flex-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs tabular-nums text-gray-800 select-all"
+                        />
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(shareUrl);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 3000);
+                          }}
+                          className="shrink-0 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                        >
+                          {copied ? "Másolva!" : "Másolás"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </>
