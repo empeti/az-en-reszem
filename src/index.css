@@ -2,15 +2,6 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --color-brand-50: #fdf4ff;
-  --color-brand-100: #fae8ff;
-  --color-brand-200: #f5d0fe;
-  --color-brand-400: #e879f9;
-  --color-brand-500: #d946ef;
-  --color-brand-600: #c026d3;
-  --color-brand-700: #a21caf;
-  --color-surface: rgba(255, 255, 255, 0.7);
-  --color-surface-solid: #ffffff;
 }
 
 body {
@@ -19,7 +10,7 @@ body {
 }
 
 input[type="checkbox"] {
-  accent-color: var(--color-brand-500);
+  accent-color: #0d9488;
 }
 
 @keyframes fade-in-up {

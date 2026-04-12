@@ -211,39 +211,32 @@ export default function App() {
 
   if (shareLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-50 via-white to-amber-50">
         <div className="text-center space-y-4">
           <div className="relative mx-auto h-12 w-12">
-            <div className="absolute inset-0 rounded-full border-2 border-white/10" />
-            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-fuchsia-400" />
+            <div className="absolute inset-0 rounded-full border-2 border-teal-100" />
+            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-teal-500" />
           </div>
-          <p className="text-sm font-medium text-white/60">Számla betöltése...</p>
+          <p className="text-sm font-medium text-gray-400">Számla betöltése...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900">
-      {/* Decorative background orbs */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-fuchsia-500/10 blur-3xl" />
-        <div className="absolute top-1/3 -left-40 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-purple-500/8 blur-3xl" />
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-amber-50">
       <div className="relative mx-auto max-w-lg px-4 pt-10 pb-36">
         {/* Header */}
         <header className="mb-10 text-center animate-fade-in-up">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-lg shadow-fuchsia-500/25">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/20">
             <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 4.5h.008v.008h-.008V13.5zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
             Az én részem
           </h1>
-          <p className="mt-2 text-sm text-white/50">
+          <p className="mt-2 text-sm text-gray-400">
             {isSharedView
               ? "Jelöld meg a te tételeidet"
               : "Töltsd fel az éttermi számlát, és válaszd ki a tételeidet"}
@@ -253,9 +246,9 @@ export default function App() {
         <div className="space-y-4">
           {isSharedView && (
             <>
-              <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white/70 backdrop-blur-sm">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-fuchsia-500/20">
-                  <svg className="h-4 w-4 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 text-sm text-teal-700">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-100">
+                  <svg className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
                   </svg>
@@ -273,7 +266,7 @@ export default function App() {
 
               <button
                 onClick={handleExitShared}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/60 backdrop-blur-sm transition hover:bg-white/10 hover:text-white/80"
+                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700"
               >
                 Saját számla feltöltése
               </button>
@@ -296,9 +289,9 @@ export default function App() {
               )}
 
               {error && (
-                <div className="animate-fade-in-up rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3.5 text-sm backdrop-blur-sm">
-                  <p className="font-semibold text-red-300">Hiba történt</p>
-                  <p className="mt-1 text-xs text-red-300/70 break-all">{error}</p>
+                <div className="animate-fade-in-up rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm">
+                  <p className="font-semibold text-red-700">Hiba történt</p>
+                  <p className="mt-1 text-xs text-red-500 break-all">{error}</p>
                 </div>
               )}
 
@@ -323,14 +316,14 @@ export default function App() {
                   <div className="flex gap-3 animate-fade-in-up">
                     <button
                       onClick={handleReset}
-                      className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/60 backdrop-blur-sm transition hover:bg-white/10 hover:text-white/80"
+                      className="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700"
                     >
                       Új számla
                     </button>
                     <button
                       onClick={handleShare}
                       disabled={sharing}
-                      className="flex-1 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/25 transition hover:shadow-fuchsia-500/40 hover:brightness-110 disabled:opacity-60 disabled:shadow-none"
+                      className="flex-1 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-teal-500/20 transition hover:shadow-lg hover:shadow-teal-500/30 hover:brightness-105 disabled:opacity-60 disabled:shadow-none"
                     >
                       {sharing
                         ? "Készül..."
@@ -341,8 +334,8 @@ export default function App() {
                   </div>
 
                   {shareUrl && (
-                    <div className="animate-fade-in-up rounded-2xl border border-fuchsia-500/20 bg-fuchsia-500/10 px-4 py-3.5 space-y-2 backdrop-blur-sm">
-                      <p className="text-xs font-semibold text-fuchsia-300">
+                    <div className="animate-fade-in-up rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 space-y-2">
+                      <p className="text-xs font-semibold text-teal-700">
                         Megosztható link:
                       </p>
                       <div className="flex gap-2 items-center">
@@ -350,7 +343,7 @@ export default function App() {
                           readOnly
                           value={shareUrl}
                           onFocus={(e) => e.target.select()}
-                          className="flex-1 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs tabular-nums text-white select-all focus:outline-none focus:border-fuchsia-400/50"
+                          className="flex-1 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs tabular-nums text-gray-700 select-all focus:outline-none focus:border-teal-400"
                         />
                         <button
                           onClick={() => {
@@ -358,7 +351,7 @@ export default function App() {
                             setCopied(true);
                             setTimeout(() => setCopied(false), 3000);
                           }}
-                          className="shrink-0 rounded-xl bg-fuchsia-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-fuchsia-400"
+                          className="shrink-0 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-500"
                         >
                           {copied ? "Másolva!" : "Másolás"}
                         </button>
