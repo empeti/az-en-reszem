@@ -1,5 +1,6 @@
-import { deflate, inflate } from "pako";
 import type { BillItem } from "../types/bill";
+
+const JSONBLOB_API = "https://jsonblob.com/api/jsonBlob";
 
 interface SharePayload {
   i: [string, number, number][];
@@ -15,81 +16,34 @@ export interface SharedBill {
   totalPaid: number;
 }
 
-function toUrlSafeBase64(bytes: Uint8Array): string {
-  const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function bigintToBase36(n: bigint): string {
+  return n.toString(36);
 }
 
-function fromUrlSafeBase64(str: string): Uint8Array {
-  const padded = str.replace(/-/g, "+").replace(/_/g, "/");
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
+function base36ToBigint(s: string): bigint {
+  const chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+  let result = 0n;
+  for (const c of s.toLowerCase()) {
+    result = result * 36n + BigInt(chars.indexOf(c));
+  }
+  return result;
 }
 
-export function encodeShareUrl(
+function buildPayload(
   items: BillItem[],
   total: number,
   peopleCount: number,
   totalPaid: number,
-): string {
-  const payload: SharePayload = {
+): SharePayload {
+  return {
     i: items.map((it) => [it.name, it.price, it.isShared ? 1 : 0]),
     t: total,
     p: peopleCount,
     pd: totalPaid,
   };
-  const json = JSON.stringify(payload);
-  const compressed = deflate(json, { level: 9 });
-  const encoded = toUrlSafeBase64(compressed);
-  return `${window.location.origin}${window.location.pathname}#s=${encoded}`;
 }
 
-export function decodeShareFromUrl(): SharedBill | null {
-  const hash = window.location.hash;
-
-  let encoded: string;
-  if (hash.startsWith("#s=")) {
-    encoded = hash.slice(3);
-  } else if (hash.startsWith("#share=")) {
-    encoded = hash.slice(7);
-    return decodeLegacy(encoded);
-  } else {
-    return null;
-  }
-
-  try {
-    const compressed = fromUrlSafeBase64(encoded);
-    const json = inflate(compressed, { to: "string" });
-    const payload: SharePayload = JSON.parse(json);
-    return payloadToSharedBill(payload);
-  } catch {
-    return null;
-  }
-}
-
-function decodeLegacy(encoded: string): SharedBill | null {
-  try {
-    const binary = atob(encoded);
-    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-    const json = new TextDecoder().decode(bytes);
-    const payload = JSON.parse(json);
-    const mapped: SharePayload = {
-      i: payload.i.map((x: [string, number, boolean | number]) => [
-        x[0],
-        x[1],
-        x[2] ? 1 : 0,
-      ]),
-      t: payload.t,
-      p: payload.p,
-      pd: payload.pd,
-    };
-    return payloadToSharedBill(mapped);
-  } catch {
-    return null;
-  }
-}
-
-function payloadToSharedBill(payload: SharePayload): SharedBill {
+function parsePayload(payload: SharePayload): SharedBill {
   let id = 0;
   const items: BillItem[] = payload.i.map(([name, price, shared]) => ({
     id: `item-${id++}`,
@@ -98,11 +52,64 @@ function payloadToSharedBill(payload: SharePayload): SharedBill {
     price,
     isShared: shared === 1,
   }));
-
   return {
     items,
     total: payload.t,
     peopleCount: payload.p,
     totalPaid: payload.pd,
   };
+}
+
+export async function storeShare(
+  items: BillItem[],
+  total: number,
+  peopleCount: number,
+  totalPaid: number,
+): Promise<string> {
+  const payload = buildPayload(items, total, peopleCount, totalPaid);
+
+  const res = await fetch(JSONBLOB_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error("Nem sikerült a link létrehozása.");
+  }
+
+  const location = res.headers.get("Location");
+  if (!location) {
+    throw new Error("Nem sikerült a link létrehozása.");
+  }
+
+  const blobId = location.split("/").pop()!;
+  const shortCode = bigintToBase36(BigInt(blobId));
+  const base = window.location.origin;
+  return `${base}/${shortCode}`;
+}
+
+export async function loadShare(shortCode: string): Promise<SharedBill> {
+  const blobId = base36ToBigint(shortCode).toString();
+
+  const res = await fetch(`${JSONBLOB_API}/${blobId}`, {
+    headers: { Accept: "application/json" },
+  });
+
+  if (!res.ok) {
+    throw new Error("A megosztott számla nem található.");
+  }
+
+  const payload: SharePayload = await res.json();
+  return parsePayload(payload);
+}
+
+export function getShareCodeFromPath(): string | null {
+  const path = window.location.pathname.replace(/^\/+/, "");
+  if (!path || path.includes("/") || path.includes(".")) return null;
+  if (!/^[a-z0-9]+$/i.test(path)) return null;
+  return path;
 }

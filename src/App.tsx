@@ -6,7 +6,12 @@ import Summary from "./components/Summary";
 import PeopleCount from "./components/PeopleCount";
 import TipInput from "./components/TipInput";
 import { parseBillImage } from "./services/gemini";
-import { encodeShareUrl, decodeShareFromUrl, type SharedBill } from "./services/share";
+import {
+  storeShare,
+  loadShare,
+  getShareCodeFromPath,
+  type SharedBill,
+} from "./services/share";
 import type { BillData, BillItem } from "./types/bill";
 
 export default function App() {
@@ -18,13 +23,20 @@ export default function App() {
   const [peopleCount, setPeopleCount] = useState(2);
   const [totalPaid, setTotalPaid] = useState("");
   const [sharedBill, setSharedBill] = useState<SharedBill | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const isSharedView = sharedBill !== null;
 
   useEffect(() => {
-    const shared = decodeShareFromUrl();
-    if (shared) setSharedBill(shared);
+    const code = getShareCodeFromPath();
+    if (!code) return;
+
+    setShareLoading(true);
+    loadShare(code)
+      .then(setSharedBill)
+      .catch(() => setError("A megosztott számla nem található vagy lejárt."))
+      .finally(() => setShareLoading(false));
   }, []);
 
   const handleApiKeySet = useCallback((key: string) => {
@@ -42,7 +54,9 @@ export default function App() {
       const data = await parseBillImage(apiKey, base64, mimeType);
       setBillData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ismeretlen hiba történt.");
+      setError(
+        err instanceof Error ? err.message : "Ismeretlen hiba történt.",
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -80,7 +94,6 @@ export default function App() {
     setTotalPaid("");
   }
 
-  // --- Owner view: split shared items by people count ---
   const ownerDisplayItems = useMemo<BillItem[]>(() => {
     if (!billData) return [];
     const result: BillItem[] = [];
@@ -119,7 +132,6 @@ export default function App() {
     return result;
   }, [billData, peopleCount, totalPaid]);
 
-  // --- Shared view: shared items appear once with per-person price ---
   const sharedDisplayItems = useMemo<BillItem[]>(() => {
     if (!sharedBill) return [];
     const result: BillItem[] = [];
@@ -160,23 +172,56 @@ export default function App() {
     ? Math.max(sharedBill!.total, sharedBill!.totalPaid)
     : Math.max(billData?.total ?? 0, Number(totalPaid) || 0);
 
-  function handleShare() {
+  async function handleShare() {
     if (!billData) return;
-    const url = encodeShareUrl(
-      billData.items,
-      billData.total,
-      peopleCount,
-      Number(totalPaid) || 0,
-    );
-    navigator.clipboard.writeText(url).then(() => {
+    try {
+      const url = await storeShare(
+        billData.items,
+        billData.total,
+        peopleCount,
+        Number(totalPaid) || 0,
+      );
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    } catch {
+      setError("Nem sikerült a link létrehozása.");
+    }
   }
 
   function handleExitShared() {
     setSharedBill(null);
-    window.history.replaceState(null, "", window.location.pathname);
+    setError(null);
+    window.history.replaceState(null, "", "/");
+  }
+
+  if (shareLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100">
+        <div className="text-center space-y-3">
+          <svg
+            className="mx-auto h-8 w-8 animate-spin text-indigo-600"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          <p className="text-sm text-gray-500">Számla betöltése...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -194,13 +239,26 @@ export default function App() {
         </header>
 
         <div className="space-y-6">
-          {/* --- SHARED VIEW --- */}
           {isSharedView && (
             <>
               <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">
-                <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
+                <svg
+                  className="h-5 w-5 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101"
+                  />
                 </svg>
                 <span className="flex-1">
                   Megosztott számla &middot; {sharedBill!.peopleCount} fő
@@ -222,13 +280,15 @@ export default function App() {
             </>
           )}
 
-          {/* --- OWNER VIEW --- */}
           {!isSharedView && (
             <>
               <ApiKeyInput onApiKeySet={handleApiKeySet} />
 
               {apiKey && !hasItems && (
-                <BillUpload onProcess={handleProcess} isProcessing={isProcessing} />
+                <BillUpload
+                  onProcess={handleProcess}
+                  isProcessing={isProcessing}
+                />
               )}
 
               {error && (
