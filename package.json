@@ -8,6 +8,7 @@
     "dev:api": "node server/index.cjs",
     "dev:vite": "vite",
     "build": "tsc && vite build",
+    "start": "node server/index.cjs",
     "preview": "vite preview"
   },
   "devDependencies": {

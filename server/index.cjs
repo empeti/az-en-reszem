@@ -2,8 +2,12 @@ const express = require("express");
 const Database = require("better-sqlite3");
 const crypto = require("crypto");
 const path = require("path");
+const fs = require("fs");
 
 const PORT = process.env.PORT || 3001;
+const distPath = path.join(__dirname, "..", "dist");
+const indexHtml = path.join(distPath, "index.html");
+const hasDistBuild = fs.existsSync(indexHtml);
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -43,6 +47,17 @@ app.get("/api/bills/:id", (req, res) => {
   res.json(JSON.parse(row.data));
 });
 
-app.listen(PORT, () => {
-  console.log(`API server: http://localhost:${PORT}`);
+if (hasDistBuild) {
+  app.use(express.static(distPath));
+
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    res.sendFile(indexHtml);
+  });
+}
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server: http://0.0.0.0:${PORT}`);
+  if (hasDistBuild) console.log(`Serving frontend from ${distPath}`);
+  else console.log("No dist/ found — API only mode");
 });
