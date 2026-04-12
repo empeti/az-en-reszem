@@ -5,6 +5,8 @@ import BillItemList from "./components/BillItemList";
 import Summary from "./components/Summary";
 import PeopleCount from "./components/PeopleCount";
 import TipInput from "./components/TipInput";
+import BankInfo from "./components/BankInfo";
+import DoneSummary from "./components/DoneSummary";
 import { parseBillImage } from "./services/gemini";
 import {
   createShareLink,
@@ -27,6 +29,10 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [bankName, setBankName] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [isDone, setIsDone] = useState(false);
 
   const isSharedView = sharedBill !== null;
 
@@ -175,6 +181,12 @@ export default function App() {
     ? Math.max(sharedBill!.total, sharedBill!.totalPaid)
     : Math.max(billData?.total ?? 0, Number(totalPaid) || 0);
 
+  const myTotal = useMemo(() => {
+    return displayItems
+      .filter((i) => selectedIds.has(i.id))
+      .reduce((sum, i) => sum + i.price, 0);
+  }, [displayItems, selectedIds]);
+
   async function handleShare() {
     if (!billData) return;
     setSharing(true);
@@ -185,6 +197,8 @@ export default function App() {
         billData.total,
         peopleCount,
         Number(totalPaid) || 0,
+        bankName,
+        bankAccount,
       );
       setShareUrl(url);
       try {
@@ -206,6 +220,8 @@ export default function App() {
   function handleExitShared() {
     setSharedBill(null);
     setError(null);
+    setIsDone(false);
+    setGuestName("");
     window.history.replaceState(null, "", "/");
   }
 
@@ -238,7 +254,9 @@ export default function App() {
           </h1>
           <p className="mt-2 text-sm text-gray-400">
             {isSharedView
-              ? "Jelöld meg a te tételeidet"
+              ? isDone
+                ? "Itt az összesítésed"
+                : "Jelöld meg a te tételeidet"
               : "Töltsd fel az éttermi számlát, és válaszd ki a tételeidet"}
           </p>
         </header>
@@ -246,30 +264,60 @@ export default function App() {
         <div className="space-y-4">
           {isSharedView && (
             <>
-              <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 text-sm text-teal-700">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-100">
-                  <svg className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
-                  </svg>
-                </div>
-                <span className="flex-1 font-medium">
-                  Megosztott számla &middot; {sharedBill!.peopleCount} fő
-                </span>
-              </div>
+              {isDone ? (
+                <DoneSummary
+                  guestName={guestName}
+                  myTotal={myTotal}
+                  bankName={sharedBill!.bankName}
+                  bankAccount={sharedBill!.bankAccount}
+                  onBack={() => setIsDone(false)}
+                />
+              ) : (
+                <>
+                  <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 text-sm text-teal-700">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-100">
+                      <svg className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
+                      </svg>
+                    </div>
+                    <span className="flex-1 font-medium">
+                      Megosztott számla &middot; {sharedBill!.peopleCount} fő
+                    </span>
+                  </div>
 
-              <BillItemList
-                items={displayItems}
-                selectedIds={selectedIds}
-                onToggle={handleToggle}
-              />
+                  <BillItemList
+                    items={displayItems}
+                    selectedIds={selectedIds}
+                    onToggle={handleToggle}
+                  />
 
-              <button
-                onClick={handleExitShared}
-                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700"
-              >
-                Saját számla feltöltése
-              </button>
+                  <div className="animate-fade-in-up space-y-3">
+                    <input
+                      type="text"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      placeholder="A neved"
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none"
+                    />
+
+                    <button
+                      onClick={() => setIsDone(true)}
+                      disabled={selectedIds.size === 0}
+                      className="w-full rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-teal-500/20 transition hover:shadow-lg hover:brightness-105 disabled:opacity-40 disabled:shadow-none"
+                    >
+                      Kész vagyok
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleExitShared}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700"
+                  >
+                    Saját számla feltöltése
+                  </button>
+                </>
+              )}
             </>
           )}
 
@@ -303,6 +351,12 @@ export default function App() {
                       billTotal={billData!.total}
                       totalPaid={totalPaid}
                       onChange={setTotalPaid}
+                    />
+                    <BankInfo
+                      bankName={bankName}
+                      bankAccount={bankAccount}
+                      onBankNameChange={setBankName}
+                      onBankAccountChange={setBankAccount}
                     />
                   </div>
 
@@ -365,7 +419,7 @@ export default function App() {
         </div>
       </div>
 
-      {hasItems && (
+      {hasItems && !isDone && (
         <Summary
           items={displayItems}
           selectedIds={selectedIds}
