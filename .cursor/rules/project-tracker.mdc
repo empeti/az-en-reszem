@@ -1,0 +1,131 @@
+---
+description: Project Tracker integration — manages tasks, commits with task IDs, auto-starts the tracker backend
+alwaysApply: true
+---
+
+# Project Tracker Integration
+
+A local Project Tracker runs at `http://127.0.0.1:8000`. Use it to manage every code change as a tracked task.
+
+**Tracker install path:** `c:\workspace\project_tracker`
+
+## Startup
+
+Before any tracked operation, confirm the backend is reachable:
+
+```
+(Invoke-WebRequest -Uri http://127.0.0.1:8000/health -UseBasicParsing).Content
+```
+
+If it fails, start it:
+
+```
+Start-Process -NoNewWindow -FilePath "python" -ArgumentList "-m","uvicorn","app.main:app","--host","127.0.0.1","--port","8000","--reload" -WorkingDirectory "c:\workspace\project_tracker\backend"
+```
+
+Wait 3 seconds, then re-check `/health`.
+
+## Project Setup
+
+Each workspace gets one project, identified by its **directory** path. On first interaction, list all projects and find the one whose `directory` matches the current workspace path:
+
+```
+GET http://127.0.0.1:8000/projects
+```
+
+Match by comparing the `directory` field to the current workspace root path. If no match is found, create a new project with the directory set:
+
+```
+POST http://127.0.0.1:8000/projects
+Body: {"name":"<workspace-name>","description":"<brief description>","directory":"<absolute-workspace-path>"}
+```
+
+The API returns `id`, `key` (e.g. `PROJ`), `name`, `description`, `directory`, `status`, `progress_percent`. Store the project `id` and `key` for all subsequent calls in this session.
+
+## Workflow for Every User Request
+
+### 1. Slice into tasks
+
+Break the request into small, atomic tasks. Before creating tasks, fetch existing tasks to discover tags already in use:
+
+```
+GET http://127.0.0.1:8000/tasks?project_id=<id>
+```
+
+Collect the set of unique tags from all returned tasks. When creating new tasks, reuse existing tags where they fit (e.g. if "Backend" already exists, don't create "backend" or "Back-end"). Add new tags only when no existing tag covers the area (e.g. "Frontend", "Backend", "API", "Database", "UI", "Tests", "Docs", "Config").
+
+Create each task with appropriate tags:
+
+```
+POST http://127.0.0.1:8000/tasks
+Body: {"project_id":<id>,"title":"<short title>","description":"<details>","tags":["Backend","API"]}
+```
+
+The API returns `issue_key` (e.g. `PROJ-5`) — this is the task ID used in commits.
+
+### 2. Implement task by task
+
+For each task:
+
+1. Move it to `in_progress`:
+   ```
+   PATCH http://127.0.0.1:8000/tasks/<task_id>/move
+   Body: {"status":"in_progress","position":0}
+   ```
+2. Implement the change.
+3. Commit and push with the task ID prefix:
+   ```
+   git add -A && git commit -m "<ISSUE_KEY>: <short description>"
+   git push
+   ```
+4. **Write a solution report** on the task before marking it done. The solution must describe what was actually implemented so that anyone reading it later understands what changed. Use this format:
+   ```
+   PATCH http://127.0.0.1:8000/tasks/<task_id>
+   Body: {"solution":"<commit_hash> — <multi-line summary>"}
+   ```
+   The solution text is rendered with formatting. Use **newlines** (`\n`) and **bullet points** (`- `) for readability:
+   - Line 1: commit hash followed by a dash and short summary
+   - Remaining lines: bullet points describing files changed and what was done
+   - Example:
+     ```
+     "a1b2c3d — Add directory field\n- Added directory column to Project model (models.py)\n- Updated API schemas to include directory (projects.py)\n- Added SQLite migration for existing DBs (db.py)"
+     ```
+5. Move the task to `done`:
+   ```
+   PATCH http://127.0.0.1:8000/tasks/<task_id>/move
+   Body: {"status":"done","position":0}
+   ```
+
+### 3. Recap
+
+After each task, briefly tell the user what was implemented and which task ID was completed.
+
+## API Reference
+
+| Method | Endpoint | Body | Purpose |
+|--------|----------|------|---------|
+| GET | `/health` | — | Check backend is alive |
+| POST | `/projects` | `{name, description, directory}` | Create project |
+| GET | `/projects` | — | List all projects |
+| GET | `/projects/{id}` | — | Get single project |
+| PATCH | `/projects/{id}` | `{name?, description?, directory?, status?}` | Update project |
+| POST | `/tasks` | `{project_id, title, description, tags?}` | Create task |
+| GET | `/tasks?project_id={id}` | — | List tasks for project |
+| PATCH | `/tasks/{id}` | `{title?, description?, solution?, tags?}` | Update task details |
+| PATCH | `/tasks/{id}/move` | `{status, position}` | Move task (open/in_progress/done) |
+
+## Task Statuses
+
+- `open` — not started
+- `in_progress` — currently being worked on
+- `done` — completed
+
+## Important Rules
+
+- **One task in progress at a time.** Finish and commit before starting the next.
+- **Every commit message starts with the issue key** (e.g. `PROJ-5: Add login endpoint`).
+- **Always push after each commit.**
+- **If the tracker is unreachable, start it before proceeding.**
+- **Do not skip task creation.** Even small fixes get a task.
+- **Always write a solution** before marking a task done. The solution is a permanent record of what was done — never leave it empty. Include commit hash, files changed, and reasoning.
+- **Keep the README.md up to date.** After completing a task that changes the project structure, adds features, modifies API endpoints, updates dependencies, or alters how to run the project, update the `README.md` in the same commit. Small internal refactors or bug fixes that don't affect usage do not require a README update.
