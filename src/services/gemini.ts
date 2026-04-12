@@ -1,7 +1,7 @@
 import type { BillData, BillItem } from "../types/bill";
 
 const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 const PROMPT = `You are an expert receipt/bill parser. Analyze this restaurant bill image and extract every line item.
 
