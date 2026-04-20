@@ -23,8 +23,18 @@ Rules:
 - "price" is the TOTAL price for that line (quantity * unit price). Preserve decimals exactly as shown on the bill (e.g. 12.50, 3.99, 1250). Do NOT round to integers.
 - "quantity" is the count for that line item.
 - "name" should be the item name exactly as printed on the bill.
-- "shared" must be true for items that are shared costs split among all diners: service charge, tip, cover charge, table fee, bread basket, or similar communal fees. For regular food/drink orders, set false.
-- Include service charge / tip as a separate item if present.
+- "shared" must be true for any item that is a communal fee charged to the whole table — regardless of language. Examples by language:
+  • English: service charge, gratuity, cover charge, table fee, bread, bread basket, VAT surcharge, mandatory tip
+  • Hungarian: szervízdíj, felszolgálási díj, kiszolgálási díj, terítékdíj, kötelező borravaló, kosárdíj
+  • German: Servicegebühr, Bedienungsgeld, Gedeck, Korbgebühr, Mehrwertsteuer-Zuschlag
+  • French: service compris, frais de service, couvert, corbeille de pain
+  • Italian: coperto, servizio, pane e coperto
+  • Spanish: servicio, cubierto, pan y cubierto
+  • Romanian: serviciu, tacâm, coș de pâine
+  • Czech/Slovak: servis, obsluha, koš
+  • Polish: obsługa, serwis, koszyk z pieczywem
+  For regular food and drink orders, always set false.
+- If a service charge / gratuity / cover charge is present on the bill, always include it as a separate item with shared=true.
 - "total" is the grand total from the bill. Preserve decimals.
 - If you cannot read a value, use your best guess.
 - Return valid JSON only, nothing else.`;
