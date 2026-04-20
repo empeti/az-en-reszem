@@ -1,5 +1,6 @@
 import type { BillItem } from "../types/bill";
 import type { Claim } from "../services/share";
+import { formatPrice } from "../utils/format";
 
 interface Props {
   items: BillItem[];
@@ -8,10 +9,7 @@ interface Props {
   onToggleShared?: (sourceId: string) => void;
   claimedItemIds?: Set<string>;
   claims?: Claim[];
-}
-
-function formatPrice(price: number): string {
-  return price.toLocaleString("hu-HU") + " Ft";
+  currency?: string;
 }
 
 function getClaimantName(itemId: string, claims: Claim[]): string | null {
@@ -28,6 +26,7 @@ export default function BillItemList({
   onToggleShared,
   claimedItemIds,
   claims,
+  currency = "HUF",
 }: Props) {
   if (items.length === 0) return null;
 
@@ -96,7 +95,7 @@ export default function BillItemList({
                       </span>
                     )}
                     <span className={`text-sm font-bold tabular-nums ${isClaimed ? "text-emerald-600" : "text-gray-500"}`}>
-                      {formatPrice(item.price)}
+                      {formatPrice(item.price, currency)}
                     </span>
                   </span>
                 </div>
@@ -152,7 +151,7 @@ export default function BillItemList({
                     <span className={`text-sm font-bold tabular-nums transition-colors ${
                       checked ? "text-teal-600" : "text-gray-500"
                     }`}>
-                      {formatPrice(item.price)}
+                      {formatPrice(item.price, currency)}
                     </span>
                   </span>
                 </span>

@@ -1,16 +1,14 @@
 import type { BillItem } from "../types/bill";
+import { formatPrice } from "../utils/format";
 
 interface Props {
   items: BillItem[];
   selectedIds: Set<string>;
   billTotal: number;
+  currency: string;
 }
 
-function formatPrice(price: number): string {
-  return price.toLocaleString("hu-HU") + " Ft";
-}
-
-export default function Summary({ items, selectedIds, billTotal }: Props) {
+export default function Summary({ items, selectedIds, billTotal, currency }: Props) {
   const selectedItems = items.filter((i) => selectedIds.has(i.id));
   const myTotal = selectedItems.reduce((sum, i) => sum + i.price, 0);
   const pct = billTotal > 0 ? Math.round((myTotal / billTotal) * 100) : 0;
@@ -31,12 +29,12 @@ export default function Summary({ items, selectedIds, billTotal }: Props) {
             {selectedItems.length} tétel &middot; a számla {pct}%-a
           </p>
           <p className="text-3xl font-extrabold tracking-tight text-gray-900">
-            {formatPrice(myTotal)}
+            {formatPrice(myTotal, currency)}
           </p>
         </div>
         <div className="text-right space-y-1">
           <p className="text-xs text-gray-400">Számla összesen</p>
-          <p className="text-sm font-bold text-gray-500 tabular-nums">{formatPrice(billTotal)}</p>
+          <p className="text-sm font-bold text-gray-500 tabular-nums">{formatPrice(billTotal, currency)}</p>
         </div>
       </div>
     </div>

@@ -1,16 +1,16 @@
+import { formatPrice, getCurrency } from "../utils/format";
+
 interface Props {
   billTotal: number;
   totalPaid: string;
+  currency: string;
   onChange: (value: string) => void;
 }
 
-function formatPrice(price: number): string {
-  return price.toLocaleString("hu-HU") + " Ft";
-}
-
-export default function TipInput({ billTotal, totalPaid, onChange }: Props) {
+export default function TipInput({ billTotal, totalPaid, currency, onChange }: Props) {
   const paid = Number(totalPaid) || 0;
   const tip = paid - billTotal;
+  const cur = getCurrency(currency);
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 space-y-3 shadow-sm">
@@ -26,14 +26,16 @@ export default function TipInput({ billTotal, totalPaid, onChange }: Props) {
             value={totalPaid}
             onChange={(e) => onChange(e.target.value)}
             placeholder={String(billTotal)}
-            className="w-32 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 pr-8 text-right text-sm tabular-nums text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 focus:outline-none"
+            className="w-32 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 pr-10 text-right text-sm tabular-nums text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 focus:outline-none"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Ft</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
+            {cur.symbol}
+          </span>
         </div>
       </div>
       {tip > 0 && (
         <p className="text-xs text-gray-500">
-          Borravaló: <span className="font-bold text-teal-600">{formatPrice(tip)}</span>
+          Borravaló: <span className="font-bold text-teal-600">{formatPrice(tip, currency)}</span>
           <span className="text-gray-400"> — fejenként megjelenik a tételeknél</span>
         </p>
       )}

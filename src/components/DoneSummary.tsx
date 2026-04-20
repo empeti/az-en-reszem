@@ -1,15 +1,13 @@
 import { useState } from "react";
+import { formatPrice } from "../utils/format";
 
 interface Props {
   guestName: string;
   myTotal: number;
   bankName: string;
   bankAccount: string;
+  currency: string;
   onBack: () => void;
-}
-
-function formatPrice(price: number): string {
-  return price.toLocaleString("hu-HU") + " Ft";
 }
 
 function CopyField({ label, value }: { label: string; value: string }) {
@@ -47,6 +45,7 @@ export default function DoneSummary({
   myTotal,
   bankName,
   bankAccount,
+  currency,
   onBack,
 }: Props) {
   return (
@@ -61,7 +60,7 @@ export default function DoneSummary({
           <span className="font-bold">{guestName || "Te"}</span>, a te részed:
         </p>
         <p className="text-3xl font-extrabold tracking-tight text-teal-900">
-          {formatPrice(myTotal)}
+          {formatPrice(myTotal, currency)}
         </p>
       </div>
 

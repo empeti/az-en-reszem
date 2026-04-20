@@ -18,6 +18,7 @@ import {
   type SharedBill,
   type Claim,
 } from "./services/share";
+import { CURRENCIES } from "./utils/format";
 import type { BillData, BillItem } from "./types/bill";
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [ownerUrl, setOwnerUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [currency, setCurrency] = useState("HUF");
   const [eventName, setEventName] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankAccount, setBankAccount] = useState("");
@@ -46,6 +48,7 @@ export default function App() {
 
   const isSharedView = sharedBill !== null && !isOwnerView;
   const isOwnerDashboard = sharedBill !== null && isOwnerView;
+  const activeCurrency = sharedBill?.currency ?? currency;
 
   useEffect(() => {
     const code = getShareCodeFromPath();
@@ -240,6 +243,7 @@ export default function App() {
         bankName,
         bankAccount,
         eventName,
+        currency,
       );
       setShareUrl(url);
       const ownerLink = url + "?owner=1";
@@ -363,9 +367,10 @@ export default function App() {
                 onToggleShared={handleToggleShared}
                 claimedItemIds={claimedItemIds}
                 claims={claims}
+                currency={activeCurrency}
               />
 
-              <ClaimsSummary claims={claims} />
+              <ClaimsSummary claims={claims} currency={activeCurrency} />
 
               <button
                 onClick={handleExitShared}
@@ -385,6 +390,7 @@ export default function App() {
                   myTotal={myTotal}
                   bankName={sharedBill!.bankName}
                   bankAccount={sharedBill!.bankAccount}
+                  currency={activeCurrency}
                   onBack={() => setIsDone(false)}
                 />
               ) : (
@@ -405,6 +411,7 @@ export default function App() {
                     items={displayItems}
                     selectedIds={selectedIds}
                     onToggle={handleToggle}
+                    currency={activeCurrency}
                   />
 
                   <div className="animate-fade-in-up space-y-3">
@@ -469,10 +476,30 @@ export default function App() {
                       placeholder="Esemény neve (pl. Pénteki vacsora)"
                       className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none"
                     />
+                    <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm space-y-2">
+                      <label className="text-sm font-semibold text-gray-700">Pénznem</label>
+                      <div className="flex flex-wrap gap-2">
+                        {CURRENCIES.map((cur) => (
+                          <button
+                            key={cur.code}
+                            type="button"
+                            onClick={() => setCurrency(cur.code)}
+                            className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition-all ${
+                              currency === cur.code
+                                ? "bg-teal-500 text-white shadow-sm shadow-teal-500/20"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                          >
+                            {cur.symbol} {cur.code}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <PeopleCount value={peopleCount} onChange={setPeopleCount} />
                     <TipInput
                       billTotal={billData!.total}
                       totalPaid={totalPaid}
+                      currency={currency}
                       onChange={setTotalPaid}
                     />
                     <BankInfo
@@ -488,6 +515,7 @@ export default function App() {
                     selectedIds={selectedIds}
                     onToggle={handleToggle}
                     onToggleShared={handleToggleShared}
+                    currency={currency}
                   />
 
                   <div className="flex gap-3 animate-fade-in-up">
@@ -573,6 +601,7 @@ export default function App() {
           items={displayItems}
           selectedIds={selectedIds}
           billTotal={effectiveTotal}
+          currency={activeCurrency}
         />
       )}
     </div>

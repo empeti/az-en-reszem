@@ -1,14 +1,12 @@
 import type { Claim } from "../services/share";
+import { formatPrice } from "../utils/format";
 
 interface Props {
   claims: Claim[];
+  currency: string;
 }
 
-function formatPrice(price: number): string {
-  return price.toLocaleString("hu-HU") + " Ft";
-}
-
-export default function ClaimsSummary({ claims }: Props) {
+export default function ClaimsSummary({ claims, currency }: Props) {
   if (claims.length === 0) {
     return (
       <div className="animate-fade-in-up rounded-2xl border border-gray-200 bg-white px-5 py-6 text-center shadow-sm">
@@ -40,14 +38,14 @@ export default function ClaimsSummary({ claims }: Props) {
               <p className="text-xs text-gray-400">{claim.itemIds.length} tétel</p>
             </div>
             <span className="text-sm font-bold tabular-nums text-teal-600">
-              {formatPrice(claim.total)}
+              {formatPrice(claim.total, currency)}
             </span>
           </li>
         ))}
         <li className="flex items-center justify-between border-t-2 border-gray-200 bg-gray-50 px-4 py-3.5">
           <span className="text-sm font-semibold text-gray-600">Összesen bejelentve</span>
           <span className="text-sm font-extrabold tabular-nums text-gray-900">
-            {formatPrice(grandTotal)}
+            {formatPrice(grandTotal, currency)}
           </span>
         </li>
       </ul>
