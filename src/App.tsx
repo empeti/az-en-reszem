@@ -21,6 +21,14 @@ import {
 import { CURRENCIES } from "./utils/format";
 import type { BillData, BillItem } from "./types/bill";
 
+function roundPrice(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function parsePaidInput(value: string): number {
+  return parseFloat(value.replace(",", ".")) || 0;
+}
+
 export default function App() {
   const [apiKey, setApiKey] = useState("");
   const [billData, setBillData] = useState<BillData | null>(null);
@@ -133,7 +141,7 @@ export default function App() {
     let sharedCounter = 0;
     for (const item of billData.items) {
       if (item.isShared) {
-        const perPerson = Math.round(item.price / peopleCount);
+        const perPerson = roundPrice(item.price / peopleCount);
         for (let i = 0; i < peopleCount; i++) {
           result.push({
             ...item,
@@ -147,10 +155,10 @@ export default function App() {
       }
     }
 
-    const paid = Number(totalPaid) || 0;
-    const tip = paid - billData.total;
+    const paid = parsePaidInput(totalPaid);
+    const tip = roundPrice(paid - billData.total);
     if (tip > 0) {
-      const perPerson = Math.round(tip / peopleCount);
+      const perPerson = roundPrice(tip / peopleCount);
       for (let i = 0; i < peopleCount; i++) {
         result.push({
           id: `tip-${i}`,
@@ -178,20 +186,20 @@ export default function App() {
         result.push({
           ...item,
           id: `s-${id++}`,
-          price: Math.round(item.price / sharedBill.peopleCount),
+          price: roundPrice(item.price / sharedBill.peopleCount),
         });
       } else {
         result.push({ ...item, id: `s-${id++}` });
       }
     }
 
-    const tip = sharedBill.totalPaid - sharedBill.total;
+    const tip = roundPrice(sharedBill.totalPaid - sharedBill.total);
     if (tip > 0) {
       result.push({
         id: `s-tip`,
         name: "Borravaló",
         quantity: 1,
-        price: Math.round(tip / sharedBill.peopleCount),
+        price: roundPrice(tip / sharedBill.peopleCount),
         isShared: true,
       });
     }
@@ -222,7 +230,7 @@ export default function App() {
   const hasItems = displayItems.length > 0;
   const effectiveTotal = sharedBill
     ? Math.max(sharedBill.total, sharedBill.totalPaid)
-    : Math.max(billData?.total ?? 0, Number(totalPaid) || 0);
+    : Math.max(billData?.total ?? 0, parsePaidInput(totalPaid));
 
   const myTotal = useMemo(() => {
     return displayItems
@@ -239,7 +247,7 @@ export default function App() {
         billData.items,
         billData.total,
         peopleCount,
-        Number(totalPaid) || 0,
+        parsePaidInput(totalPaid),
         bankName,
         bankAccount,
         eventName,

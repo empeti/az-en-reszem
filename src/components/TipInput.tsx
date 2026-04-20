@@ -8,8 +8,8 @@ interface Props {
 }
 
 export default function TipInput({ billTotal, totalPaid, currency, onChange }: Props) {
-  const paid = Number(totalPaid) || 0;
-  const tip = paid - billTotal;
+  const paid = parseFloat(totalPaid.replace(",", ".")) || 0;
+  const tip = Math.round((paid - billTotal) * 100) / 100;
   const cur = getCurrency(currency);
 
   return (
