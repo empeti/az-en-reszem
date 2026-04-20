@@ -92,6 +92,7 @@ export default function App() {
     try {
       const data = await parseBillImage(apiKey, base64, mimeType);
       setBillData(data);
+      setCurrency(data.currency);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Ismeretlen hiba történt.",
@@ -485,7 +486,14 @@ export default function App() {
                       className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none"
                     />
                     <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm space-y-2">
-                      <label className="text-sm font-semibold text-gray-700">Pénznem</label>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-semibold text-gray-700">Pénznem</label>
+                        {billData?.currency && (
+                          <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
+                            automatikusan felismerve
+                          </span>
+                        )}
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {CURRENCIES.map((cur) => (
                           <button

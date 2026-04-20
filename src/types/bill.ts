@@ -11,4 +11,5 @@ export interface BillItem {
 export interface BillData {
   items: BillItem[];
   total: number;
+  currency: string;
 }

@@ -11,6 +11,7 @@ const PROMPT = `You are an expert receipt/bill parser. Analyze this restaurant b
 
 Return ONLY a valid JSON object with this exact structure (no markdown, no code fences):
 {
+  "currency": "HUF",
   "items": [
     { "name": "item name", "quantity": 1, "price": 12.50, "shared": false }
   ],
@@ -18,6 +19,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no code 
 }
 
 Rules:
+- "currency" is the ISO 4217 currency code detected from the bill (e.g. "HUF", "EUR", "USD", "GBP", "CHF", "CZK", "PLN", "RON", "RSD"). Look for currency symbols (Ft, €, $, £, CHF, Kč, zł, lei, din) or explicit currency labels on the bill. If uncertain, use "HUF".
 - "price" is the TOTAL price for that line (quantity * unit price). Preserve decimals exactly as shown on the bill (e.g. 12.50, 3.99, 1250). Do NOT round to integers.
 - "quantity" is the count for that line item.
 - "name" should be the item name exactly as printed on the bill.
@@ -70,10 +72,18 @@ export async function parseBillImage(
     throw new Error("Nem sikerült JSON-t kinyerni a válaszból.");
   }
 
+  const VALID_CURRENCIES = ["HUF","EUR","USD","GBP","CHF","CZK","PLN","RON","RSD"];
+
   const parsed = JSON.parse(jsonMatch[0]) as {
+    currency?: string;
     items: { name: string; quantity: number; price: number; shared?: boolean }[];
     total: number;
   };
+
+  const detectedCurrency =
+    parsed.currency && VALID_CURRENCIES.includes(parsed.currency.toUpperCase())
+      ? parsed.currency.toUpperCase()
+      : "HUF";
 
   const items: BillItem[] = [];
   let idCounter = 0;
@@ -95,5 +105,6 @@ export async function parseBillImage(
   return {
     items,
     total: parsed.total,
+    currency: detectedCurrency,
   };
 }
