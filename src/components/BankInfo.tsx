@@ -12,25 +12,25 @@ export default function BankInfo({
   onBankAccountChange,
 }: Props) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 space-y-3 shadow-sm">
-      <p className="text-sm font-semibold text-gray-700">Utalási adatok</p>
+    <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 space-y-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">Utalási adatok</p>
       <div className="space-y-2">
         <input
           type="text"
           value={bankName}
           onChange={(e) => onBankNameChange(e.target.value)}
           placeholder="Kedvezményezett neve"
-          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 focus:outline-none"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:border-teal-500 dark:focus:bg-slate-600 dark:focus:ring-teal-900"
         />
         <input
           type="text"
           value={bankAccount}
           onChange={(e) => onBankAccountChange(e.target.value)}
           placeholder="Bankszámlaszám (pl. 12345678-12345678-12345678)"
-          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 focus:outline-none tabular-nums"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 focus:outline-none tabular-nums dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:border-teal-500 dark:focus:bg-slate-600 dark:focus:ring-teal-900"
         />
       </div>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-400 dark:text-slate-500">
         Ezek az adatok megjelennek a megosztott linken a fizetéshez.
       </p>
     </div>

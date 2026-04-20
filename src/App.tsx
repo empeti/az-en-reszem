@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useLayoutEffect } from "react";
 import ApiKeyInput from "./components/ApiKeyInput";
 import BillUpload from "./components/BillUpload";
 import BillItemList from "./components/BillItemList";
@@ -19,6 +19,7 @@ import {
   type Claim,
 } from "./services/share";
 import { CURRENCIES } from "./utils/format";
+import { getInitialTheme, applyTheme, type Theme } from "./utils/theme";
 import type { BillData, BillItem } from "./types/bill";
 
 function roundPrice(n: number): number {
@@ -43,6 +44,7 @@ export default function App() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [ownerUrl, setOwnerUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [theme, setTheme] = useState<Theme>("light");
   const [currency, setCurrency] = useState("HUF");
   const [eventName, setEventName] = useState("");
   const [bankName, setBankName] = useState("");
@@ -57,6 +59,18 @@ export default function App() {
   const isSharedView = sharedBill !== null && !isOwnerView;
   const isOwnerDashboard = sharedBill !== null && isOwnerView;
   const activeCurrency = sharedBill?.currency ?? currency;
+
+  useLayoutEffect(() => {
+    const initial = getInitialTheme();
+    setTheme(initial);
+    applyTheme(initial);
+  }, []);
+
+  function toggleTheme() {
+    const next: Theme = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    applyTheme(next);
+  }
 
   useEffect(() => {
     const code = getShareCodeFromPath();
@@ -313,31 +327,48 @@ export default function App() {
 
   if (shareLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-50 via-white to-amber-50">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-50 via-white to-amber-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="text-center space-y-4">
           <div className="relative mx-auto h-12 w-12">
-            <div className="absolute inset-0 rounded-full border-2 border-teal-100" />
+            <div className="absolute inset-0 rounded-full border-2 border-teal-100 dark:border-slate-700" />
             <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-teal-500" />
           </div>
-          <p className="text-sm font-medium text-gray-400">Számla betöltése...</p>
+          <p className="text-sm font-medium text-gray-400 dark:text-slate-500">Számla betöltése...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-amber-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="relative mx-auto max-w-lg px-4 pt-10 pb-36">
         <header className="mb-10 text-center animate-fade-in-up">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/20">
-            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 4.5h.008v.008h-.008V13.5zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-            </svg>
+          <div className="mb-4 flex items-start justify-center relative">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/20">
+              <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 4.5h.008v.008h-.008V13.5zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+            </div>
+            <button
+              onClick={toggleTheme}
+              title={theme === "dark" ? "Világos mód" : "Sötét mód"}
+              className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm transition hover:bg-gray-50 hover:text-gray-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+            >
+              {theme === "dark" ? (
+                <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                </svg>
+              ) : (
+                <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                </svg>
+              )}
+            </button>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-slate-100">
             {sharedBill?.eventName || "Az én részem"}
           </h1>
-          <p className="mt-2 text-sm text-gray-400">
+          <p className="mt-2 text-sm text-gray-400 dark:text-slate-500">
             {isOwnerDashboard
               ? "Számla áttekintés"
               : isSharedView
@@ -352,9 +383,9 @@ export default function App() {
           {/* Owner dashboard */}
           {isOwnerDashboard && (
             <>
-              <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-700">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100">
-                  <svg className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-800/40">
+                  <svg className="h-4 w-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
                   </svg>
                 </div>
@@ -363,7 +394,7 @@ export default function App() {
                 </span>
                 <button
                   onClick={handleRefreshClaims}
-                  className="rounded-lg px-2.5 py-1 text-xs font-medium text-amber-600 transition hover:bg-amber-100"
+                  className="rounded-lg px-2.5 py-1 text-xs font-medium text-amber-600 transition hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-800/40"
                 >
                   Frissítés
                 </button>
@@ -383,7 +414,7 @@ export default function App() {
 
               <button
                 onClick={handleExitShared}
-                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700"
+                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
               >
                 Saját számla feltöltése
               </button>
@@ -404,9 +435,9 @@ export default function App() {
                 />
               ) : (
                 <>
-                  <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 text-sm text-teal-700">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-100">
-                      <svg className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 text-sm text-teal-700 dark:border-teal-800 dark:bg-teal-900/20 dark:text-teal-300">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-100 dark:bg-teal-800/40">
+                      <svg className="h-4 w-4 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
                       </svg>
@@ -429,7 +460,7 @@ export default function App() {
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       placeholder="A neved"
-                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none"
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:border-teal-500 dark:focus:ring-teal-900"
                     />
 
                     <button
@@ -443,7 +474,7 @@ export default function App() {
 
                   <button
                     onClick={handleExitShared}
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
                   >
                     Saját számla feltöltése
                   </button>
@@ -469,9 +500,9 @@ export default function App() {
               )}
 
               {error && (
-                <div className="animate-fade-in-up rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm">
-                  <p className="font-semibold text-red-700">Hiba történt</p>
-                  <p className="mt-1 text-xs text-red-500 break-all">{error}</p>
+                <div className="animate-fade-in-up rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm dark:border-red-800 dark:bg-red-900/20">
+                  <p className="font-semibold text-red-700 dark:text-red-300">Hiba történt</p>
+                  <p className="mt-1 text-xs text-red-500 break-all dark:text-red-400">{error}</p>
                 </div>
               )}
 
@@ -483,13 +514,13 @@ export default function App() {
                       value={eventName}
                       onChange={(e) => setEventName(e.target.value)}
                       placeholder="Esemény neve (pl. Pénteki vacsora)"
-                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none"
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-300 shadow-sm transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:border-teal-500 dark:focus:ring-teal-900"
                     />
-                    <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm space-y-2">
+                    <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm space-y-2 dark:border-slate-700 dark:bg-slate-800">
                       <div className="flex items-center gap-2">
-                        <label className="text-sm font-semibold text-gray-700">Pénznem</label>
+                        <label className="text-sm font-semibold text-gray-700 dark:text-slate-200">Pénznem</label>
                         {billData?.currency && (
-                          <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
+                          <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
                             automatikusan felismerve
                           </span>
                         )}
@@ -503,7 +534,7 @@ export default function App() {
                             className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition-all ${
                               currency === cur.code
                                 ? "bg-teal-500 text-white shadow-sm shadow-teal-500/20"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-400 dark:hover:bg-slate-600 dark:hover:text-slate-200"
                             }`}
                           >
                             {cur.symbol} {cur.code}
@@ -537,7 +568,7 @@ export default function App() {
                   <div className="flex gap-3 animate-fade-in-up">
                     <button
                       onClick={handleReset}
-                      className="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700"
+                      className="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
                     >
                       Új számla
                     </button>
@@ -556,8 +587,8 @@ export default function App() {
 
                   {shareUrl && (
                     <div className="animate-fade-in-up space-y-3">
-                      <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 space-y-2">
-                        <p className="text-xs font-semibold text-teal-700">
+                      <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3.5 space-y-2 dark:border-teal-800 dark:bg-teal-900/20">
+                        <p className="text-xs font-semibold text-teal-700 dark:text-teal-300">
                           Megosztható link (küld el a többieknek):
                         </p>
                         <div className="flex gap-2 items-center">
@@ -565,7 +596,7 @@ export default function App() {
                             readOnly
                             value={shareUrl}
                             onFocus={(e) => e.target.select()}
-                            className="flex-1 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs tabular-nums text-gray-700 select-all focus:outline-none focus:border-teal-400"
+                            className="flex-1 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs tabular-nums text-gray-700 select-all focus:outline-none focus:border-teal-400 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-300"
                           />
                           <button
                             onClick={() => {
@@ -581,8 +612,8 @@ export default function App() {
                       </div>
 
                       {ownerUrl && (
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 space-y-2">
-                          <p className="text-xs font-semibold text-amber-700">
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 space-y-2 dark:border-amber-800 dark:bg-amber-900/20">
+                          <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
                             Tulajdonos link (mentsd el magadnak):
                           </p>
                           <div className="flex gap-2 items-center">
@@ -590,7 +621,7 @@ export default function App() {
                               readOnly
                               value={ownerUrl}
                               onFocus={(e) => e.target.select()}
-                              className="flex-1 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs tabular-nums text-gray-700 select-all focus:outline-none focus:border-amber-400"
+                              className="flex-1 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs tabular-nums text-gray-700 select-all focus:outline-none focus:border-amber-400 dark:border-amber-700 dark:bg-slate-700 dark:text-slate-300"
                             />
                             <button
                               onClick={() => {
